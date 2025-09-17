@@ -1,0 +1,55 @@
+using UnityEngine;
+
+public class MovementService
+{
+    public float JumpForce { get; set; } = 5f;
+    public float MaxFallSpeed { get; set; } = 20f;
+    public float GravityMultiplier { get; set; } = 1f;
+
+    // Handle walking inputs & transitions. Returns new state if changed, otherwise null.
+    public FpsPlayerClimbing.PlayerState? HandleWalking(Rigidbody rb, FpsPlayerController fpsController, bool jumpPressed)
+    {
+        if (jumpPressed)
+        {
+            Vector3 v = rb.linearVelocity;
+            v.y = JumpForce;
+            rb.linearVelocity = v;
+            return FpsPlayerClimbing.PlayerState.FALLING;
+        }
+
+        if (!fpsController.IsGrounded())
+        {
+            return FpsPlayerClimbing.PlayerState.FALLING;
+        }
+
+        return null;
+    }
+
+    // Generic falling behavior (applies gravity, clamps velocity). Returns new state if landed.
+    public FpsPlayerClimbing.PlayerState? HandleFalling(Rigidbody rb, FpsPlayerController fpsController, bool jumpPressed, LayerMask climbableLayers, Transform transform, float climbDetectionDistance)
+    {
+        // Grab while falling
+        if (Input.GetMouseButtonDown(0) && ClimbDetector.CanClimb(transform, Camera.main ? Camera.main.transform : null, climbDetectionDistance, climbableLayers, 70f, 0.7f))
+        {
+            return FpsPlayerClimbing.PlayerState.CLIMBING;
+        }
+
+        // Ground check
+        if (fpsController != null && fpsController.IsGrounded())
+        {
+            if (!fpsController.enabled) fpsController.enabled = true;
+            return FpsPlayerClimbing.PlayerState.WALKING;
+        }
+
+        // Apply gravity
+        rb.linearVelocity += Vector3.down * Physics.gravity.magnitude * GravityMultiplier * Time.fixedDeltaTime;
+        if (rb.linearVelocity.y < -MaxFallSpeed)
+        {
+            Vector3 v = rb.linearVelocity;
+            v.y = -MaxFallSpeed;
+            rb.linearVelocity = v;
+        }
+
+        return null;
+    }
+}
