@@ -1,10 +1,7 @@
-using Core;
-using Netcode.Transports.Facepunch;
-using Steamworks.Data;
+using Core.Singleton;
 using R3;
-using Steamworks;
 using Unity.Netcode;
-using UnityEngine;
+using Unity.Netcode.Transports.UTP;
 
 namespace Services.Network
 {
@@ -17,42 +14,53 @@ namespace Services.Network
             var steam = SteamService.Instance;
 
             steam.OnLobbyCreated
-                .Subscribe(Host)
+                .Subscribe(_ => Host())
                 .AddTo(_disposable);
 
             steam.OnLobbyEntered
-                .Subscribe(Join)
+                .Subscribe(_ => Join())
                 .AddTo(_disposable);
         }
 
-        public void Host(Lobby lobby)
-        {
-            if (SteamClient.SteamId != lobby.Owner.Id) return;
-            if (NetworkManager.Singleton.IsHost) return;
-
-            var transport = NetworkManager.Singleton.GetComponent<FacepunchTransport>();
-            transport.targetSteamId = lobby.Owner.Id;
-
-            NetworkManager.Singleton.StartHost();
-        }
-
-        public void Join(Lobby lobby)
-        {
-            if (SteamClient.SteamId == lobby.Owner.Id) return;
-            if (NetworkManager.Singleton.IsHost) return;
-            if (NetworkManager.Singleton.IsClient) return;
-
-            var transport = NetworkManager.Singleton.GetComponent<FacepunchTransport>();
-            transport.targetSteamId = lobby.Owner.Id;
-
-            NetworkManager.Singleton.StartClient();
-        }
-
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             _disposable.Dispose();
 
             NetworkManager.Singleton?.Shutdown();
+
+            base.OnDestroy();
+        }
+
+        public void Host()
+        {
+            if (NetworkManager.Singleton.IsHost) return;
+
+            SetupTransport();
+
+            NetworkManager.Singleton.StartHost();
+        }
+
+        public void Join()
+        {
+            if (NetworkManager.Singleton.IsHost) return;
+            if (NetworkManager.Singleton.IsClient) return;
+
+            SetupTransport();
+
+            NetworkManager.Singleton.StartClient();
+        }
+
+        private void SetupTransport()
+        {
+#if UNITY_EDITOR
+            var transport = NetworkManager.Singleton.gameObject.AddComponent<UnityTransport>();
+            transport.SetConnectionData("127.0.0.1", 8888);
+
+            NetworkManager.Singleton.NetworkConfig.NetworkTransport = transport;
+#else
+            var transport = NetworkManager.Singleton.GetComponent<FacepunchTransport>();
+            transport.targetSteamId = lobby.Owner.Id;
+#endif
         }
     }
 }

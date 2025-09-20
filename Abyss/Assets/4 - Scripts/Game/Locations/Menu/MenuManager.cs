@@ -1,5 +1,5 @@
 using System;
-using Core;
+using Core.Singleton;
 using Eflatun.SceneReference;
 using Services.Network;
 using Services.Network.Data;
