@@ -22,7 +22,7 @@ namespace Game.Locations.Menu
 
         private void Join()
         {
-            NetworkService.Instance.Join(SteamService.Instance.Lobby);
+            NetworkService.Instance.Join();
         }
     }
 }

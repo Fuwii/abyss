@@ -1,4 +1,4 @@
-using Core;
+using Core.Singleton;
 using Cysharp.Threading.Tasks;
 using R3;
 using Services.Network.Data;
@@ -38,7 +38,7 @@ namespace Services.Network
             SteamFriends.OnGameLobbyJoinRequested += LobbyJoinRequested;
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
             _onLobbyCreated.Dispose();
             _onLobbyEntered.Dispose();
@@ -52,6 +52,8 @@ namespace Services.Network
             SteamFriends.OnGameLobbyJoinRequested -= LobbyJoinRequested;
 
             if (SteamClient.IsValid) SteamClient.Shutdown();
+
+            base.OnDestroy();
         }
 
         public async UniTask CreateLobby(LobbyOptions options)
