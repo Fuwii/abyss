@@ -1,6 +1,4 @@
 namespace Game.Locations.Lobby
 {
-    public class LobbyManager
-    {
-    }
+    public class LobbyManager { }
 }

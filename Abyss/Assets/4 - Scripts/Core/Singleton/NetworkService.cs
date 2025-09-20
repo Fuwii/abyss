@@ -19,6 +19,7 @@ namespace Core.Singleton
             {
                 Debug.LogWarning($"Another network service of {Instance} is already exists");
                 Destroy(this);
+                return;
             }
 
             NetworkManager.OnInstantiated += OnNetworkPreSpawn;
@@ -38,9 +39,7 @@ namespace Core.Singleton
             _cancellationTokenSource = null;
         }
 
-        protected virtual void OnNetworkPreSpawn(NetworkManager manager)
-        {
-        }
+        protected virtual void OnNetworkPreSpawn(NetworkManager manager) { }
 
         protected virtual void OnNetworkPreDespawn(NetworkManager manager)
         {

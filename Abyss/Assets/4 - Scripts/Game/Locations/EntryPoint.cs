@@ -1,8 +1,6 @@
 using System;
-using Cysharp.Threading.Tasks;
 using Eflatun.SceneReference;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using UnityEngine.SceneManagement;
 
 namespace Game.Locations
