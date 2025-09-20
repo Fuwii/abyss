@@ -15,10 +15,8 @@ namespace Services.Network.Observables
 
         public Observable<Unit> OnPreShutdown { get; private set; }
 
-        protected override void OnNetworkPreSpawn(NetworkManager manager)
+        private void Start()
         {
-            base.OnNetworkPreSpawn(manager);
-
             OnClientStarted = Observable.FromEvent<Action, Unit>(
                 handler => () => handler(Unit.Default),
                 handler => NetworkManager.Singleton.OnClientStarted += handler,
