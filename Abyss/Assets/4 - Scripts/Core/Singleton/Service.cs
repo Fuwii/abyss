@@ -1,4 +1,4 @@
-namespace Core
+namespace Core.Singleton
 {
     public abstract class Service<T> : Singleton<T>
         where T : Service<T>
@@ -6,6 +6,7 @@ namespace Core
         protected override void Awake()
         {
             base.Awake();
+
             DontDestroyOnLoad(gameObject);
         }
     }

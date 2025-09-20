@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Core
+namespace Core.Singleton
 {
     public abstract class Singleton<T> : MonoBehaviour
         where T : Singleton<T>
@@ -11,11 +11,19 @@ namespace Core
         {
             if (Instance != null)
             {
-                Debug.LogWarning($"Another instance of {Instance} is already running");
+                Debug.LogWarning($"Another instance of {Instance} is already exists");
                 Destroy(this);
             }
 
             Instance = this as T;
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (Instance != this)
+                return;
+
+            Instance = null;
         }
     }
 }
