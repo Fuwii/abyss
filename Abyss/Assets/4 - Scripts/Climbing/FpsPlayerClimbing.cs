@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
@@ -23,27 +24,25 @@ public class FpsPlayerClimbing : MonoBehaviour
     [Header("Falling")]
     public float maxFallSpeed = 20f;
 
-    [Header("References")]
+    [Header("Refs")]
     public Transform cameraTransform;
     public LayerMask climbableLayers;
     public FpsPlayerController fpsController;
     public PlayerStamina playerStamina;
 
+    // internals
     private Rigidbody rb;
-
-    private MovementService movementService;
+    private MovementStateHandler movementHandler;
     private ClimbingService climbingService;
+    private ClimbConfig climbConfig;
+    private ClimbingContext climbingContext;
 
-    // input cache (от InputManager)
-    private Vector2 rawMove = Vector2.zero;
-    private bool jumpPressed = false;
-    private bool leftClickHeld = false;
+    // input cache
+    private float inputH, inputV;
+    private bool jumpPressed, climbPressed;
 
     private const float MinWallAngleDeg = 70f;
     private const float LookAlignmentThreshold = 0.7f;
-
-    private ClimbConfig climbConfig;
-    private ClimbingContext climbingContext;
 
     private void Awake()
     {
@@ -52,146 +51,54 @@ public class FpsPlayerClimbing : MonoBehaviour
         if (!fpsController) fpsController = GetComponent<FpsPlayerController>();
         if (!playerStamina) playerStamina = GetComponent<PlayerStamina>();
 
-        BuildContext();
-        BuildConfig();
-        movementService = new MovementService { JumpForce = jumpForce, MaxFallSpeed = maxFallSpeed };
-        var climbingFactory = new ClimbHandlerFactory(new WallClimbHandler(climbConfig), new ObjectClimbHandler(climbConfig));
-        climbingService = new ClimbingService(climbingFactory);
-        climbingService.OnTransitionToFallingRequested += () => TransitionToFalling();
-
-        state = PlayerState.WALKING;
+        BuildConfigAndServices();
     }
-
-    private void OnEnable()
-    {
-        InputManager.OnMoveAxisChanged += HandleMove;
-        InputManager.OnJumpPressed += HandleJump;
-        InputManager.OnLeftClickStarted += HandleLeftClickStart;
-        InputManager.OnLeftClickCanceled += HandleLeftClickCancel;
-    }
-
-    private void OnDisable()
-    {
-        InputManager.OnMoveAxisChanged -= HandleMove;
-        InputManager.OnJumpPressed -= HandleJump;
-        InputManager.OnLeftClickStarted -= HandleLeftClickStart;
-        InputManager.OnLeftClickCanceled -= HandleLeftClickCancel;
-    }
-
-    private void HandleMove(Vector2 v) => rawMove = v;
-    private void HandleJump() => jumpPressed = true;
-    private void HandleLeftClickStart() => leftClickHeld = true;
-    private void HandleLeftClickCancel() => leftClickHeld = false;
 
     private void Update()
     {
+        inputH = Input.GetAxis("Horizontal");
+        inputV = Input.GetAxis("Vertical");
+        jumpPressed = Input.GetButtonDown("Jump");
+        climbPressed = Input.GetMouseButtonDown(0);
+
         if (state != PlayerState.CLIMBING) CheckForGrounded();
 
-        if (leftClickHeld && state != PlayerState.CLIMBING && CanClimb())
-        {
-            TransitionToClimbing();
-        }
+        if (climbPressed && state != PlayerState.CLIMBING && CanClimb())
+            EnterClimbing();
 
         if (jumpPressed && state == PlayerState.CLIMBING)
-        {
-            TransitionToFalling();
-            rb.AddForce(Vector3.up * climbJumpForce, ForceMode.VelocityChange);
-        }
+            ExitClimbingToFallingWithJump();
     }
 
     private void FixedUpdate()
     {
-        switch (state)
+        // keep one-frame sampling
+        jumpPressed = Input.GetButtonDown("Jump");
+
+        // delegate walking/falling logic
+        var newState = movementHandler.HandleState(state, rb, fpsController, jumpPressed, playerStamina, climbableLayers, transform, climbDetectionDistance);
+        if (newState.HasValue) state = newState.Value;
+
+        // climbing branch (delegated)
+        if (state == PlayerState.CLIMBING)
         {
-            case PlayerState.WALKING:
-                playerStamina?.RemoveClimbingDebuff();
-                var maybe = movementService.HandleWalking(rb, fpsController, jumpPressed);
-                if (maybe.HasValue) state = maybe.Value;
-                if (leftClickHeld && CanClimb()) TransitionToClimbing();
-                break;
-
-            case PlayerState.FALLING:
-                var newState = movementService.HandleFalling(rb, fpsController, jumpPressed, climbableLayers, transform, climbDetectionDistance);
-                if (newState.HasValue) state = newState.Value;
-                break;
-
-            case PlayerState.NO_STAMINA_FALLING:
-                var ns = movementService.HandleFalling(rb, fpsController, jumpPressed, climbableLayers, transform, climbDetectionDistance);
-                if (ns.HasValue) state = ns.Value;
-                if (playerStamina != null && playerStamina.GetCurrentStamina() > playerStamina.GetCurrentMaxBaseStamina() * 0.3f)
-                {
-                    state = PlayerState.FALLING;
-                }
-                break;
-
-            case PlayerState.CLIMBING:
-                var ctx = new ClimbingContext
-                {
-                    Rigidbody = rb,
-                    Transform = transform,
-                    ClimbableLayers = climbableLayers,
-                    ClimbDetectionDistance = climbDetectionDistance,
-                    InputH = rawMove.x,
-                    InputV = rawMove.y,
-                    JumpPressed = jumpPressed,
-                    StaminaMoveCost = staminaClimbCost,
-                    StaminaIdleCost = staminaClimbIdleCost,
-                    ClimbingSubState = climbingState,
-                    ConsumeStamina = (amt) => playerStamina == null ? true : playerStamina.Consume(amt),
-                    RequestNoStamina = () => TransitionToNoStaminaFalling()
-                };
-
-                if (climbingContext != null && climbingContext.CurrentClimbable != null)
-                {
-                    ctx.CurrentClimbable = climbingContext.CurrentClimbable;
-                }
-
-                climbingService.HandleClimbing(ctx);
-                climbingState = ctx.ClimbingSubState;
-
-                if (!ctx.IsClimbingObject)
-                {
-                    if (climbingContext != null) climbingContext.CurrentClimbable = null;
-                }
-                break;
+            EnsureClimbingContext();
+            playerStamina?.ApplyClimbingDebuff(); // apply while in climbing
+            climbingService.HandleClimbing(climbingContext);
+            climbingState = climbingContext.ClimbingSubState;
+            // climbingService can call RequestNoStamina -> we map it to TransitionToNoStamina below via context
+            if (!climbingContext.IsClimbingObject && climbingContext.CurrentClimbable == null)
+            {
+                // nothing extra here (object climb cleared)
+            }
         }
 
         rb.useGravity = state != PlayerState.CLIMBING;
         jumpPressed = false;
     }
 
-    private bool CanClimb() => ClimbDetector.CanClimb(transform, cameraTransform, climbDetectionDistance, climbableLayers, MinWallAngleDeg, LookAlignmentThreshold);
-
-    private void CheckForGrounded()
-    {
-        if (state == PlayerState.WALKING && !fpsController.IsGrounded())
-            state = PlayerState.FALLING;
-        else if (state == PlayerState.FALLING && fpsController.IsGrounded())
-            state = PlayerState.WALKING;
-    }
-
-    private void TransitionToFalling()
-    {
-        StopClimbOnObject();
-        if (fpsController != null) fpsController.enabled = true;
-        state = PlayerState.FALLING;
-        if (fpsController != null && fpsController.IsGrounded())
-        {
-            state = PlayerState.WALKING;
-        }
-    }
-
-    private void TransitionToNoStaminaFalling()
-    {
-        if (fpsController != null) fpsController.enabled = true;
-        state = PlayerState.NO_STAMINA_FALLING;
-        if (fpsController != null && fpsController.IsGrounded())
-        {
-            state = PlayerState.WALKING;
-        }
-    }
-
-    private void TransitionToClimbing()
+    // transitions & helpers
+    private void EnterClimbing()
     {
         var prev = state;
         state = PlayerState.CLIMBING;
@@ -199,43 +106,91 @@ public class FpsPlayerClimbing : MonoBehaviour
         Debug.Log($"Transitioned from {prev} to CLIMBING");
     }
 
-    private void BuildContext()
+    private void ExitClimbingToFallingWithJump()
     {
-        var ctx = new ClimbingContext
-        {
-            Rigidbody = rb,
-            Transform = transform,
-            ClimbableLayers = climbableLayers,
-            ClimbDetectionDistance = climbDetectionDistance,
-            InputH = rawMove.x,
-            InputV = rawMove.y,
-            JumpPressed = jumpPressed,
-            StaminaMoveCost = staminaClimbCost,
-            StaminaIdleCost = staminaClimbIdleCost,
-            ClimbingSubState = climbingState,
-            ConsumeStamina = (amt) => playerStamina == null ? true : playerStamina.Consume(amt),
-            RequestNoStamina = () => TransitionToNoStaminaFalling()
-        };
-        climbingContext = ctx;
+        TransitionToFalling();
+        rb.AddForce(Vector3.up * climbJumpForce, ForceMode.VelocityChange);
     }
 
-    private void BuildConfig()
+    public void TransitionToFalling()
+    {
+        ExitClimbingCleanup();
+        if (fpsController != null) fpsController.enabled = true;
+        state = PlayerState.FALLING;
+        if (fpsController != null && fpsController.IsGrounded()) state = PlayerState.WALKING;
+    }
+
+    public void TransitionToNoStaminaFalling()
+    {
+        ExitClimbingCleanup();
+        if (fpsController != null) fpsController.enabled = true;
+        state = PlayerState.NO_STAMINA_FALLING;
+        if (fpsController != null && fpsController.IsGrounded()) state = PlayerState.WALKING;
+    }
+
+    private void ExitClimbingCleanup()
+    {
+        if (climbingContext == null) EnsureClimbingContext(); // ensure exists
+        climbingContext.CurrentClimbable = null;
+        playerStamina?.RemoveClimbingDebuff();
+    }
+
+    private bool CanClimb() => ClimbDetector.CanClimb(transform, cameraTransform, climbDetectionDistance, climbableLayers, MinWallAngleDeg, LookAlignmentThreshold);
+
+    private void CheckForGrounded()
+    {
+        if (state == PlayerState.WALKING && !fpsController.IsGrounded()) state = PlayerState.FALLING;
+        else if (state == PlayerState.FALLING && fpsController.IsGrounded()) state = PlayerState.WALKING;
+    }
+
+    private void BuildConfigAndServices()
     {
         climbConfig = new ClimbConfig();
+        var wallHandler = new WallClimbHandler(climbConfig);
+        var objHandler = new ObjectClimbHandler(climbConfig);
+        var factory = new ClimbHandlerFactory(wallHandler, objHandler);
+        climbingService = new ClimbingService(factory);
+        climbingService.OnTransitionToFallingRequested += TransitionToFalling;
+
+        movementHandler = new MovementStateHandler(this); // pass self for transitions & stamina checks
+        EnsureClimbingContext();
     }
 
+    private void EnsureClimbingContext()
+    {
+        if (climbingContext == null)
+            climbingContext = new ClimbingContext();
+
+        climbingContext.Rigidbody = rb;
+        climbingContext.Transform = transform;
+        climbingContext.ClimbableLayers = climbableLayers;
+        climbingContext.ClimbDetectionDistance = climbDetectionDistance;
+        climbingContext.WallStickDistance = wallStickDistance;
+
+        climbingContext.InputH = inputH;
+        climbingContext.InputV = inputV;
+        climbingContext.JumpPressed = jumpPressed;
+        climbingContext.StaminaMoveCost = staminaClimbCost;
+        climbingContext.StaminaIdleCost = staminaClimbIdleCost;
+        climbingContext.ClimbingSubState = climbingState;
+
+        climbingContext.ConsumeStamina = (amt) => playerStamina == null ? true : playerStamina.Consume(amt);
+        climbingContext.RequestNoStamina = () => TransitionToNoStaminaFalling();
+    }
+
+    // External object helpers
     public void StartClimbOnObject(ClimbableObject obj)
     {
         if (obj == null) return;
-        if (climbingContext == null) BuildContext();
+        if (climbingContext == null) EnsureClimbingContext();
         climbingContext.CurrentClimbable = obj;
-        TransitionToClimbing();
+        EnterClimbing();
         rb.linearVelocity = Vector3.zero;
     }
 
     public void StopClimbOnObject()
     {
-        if (climbingContext == null) BuildContext();
+        if (climbingContext == null) EnsureClimbingContext();
         climbingContext.CurrentClimbable = null;
     }
 }
