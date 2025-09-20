@@ -47,6 +47,7 @@ public class ClimbingContext
     public Transform Transform;
     public LayerMask ClimbableLayers;
     public float ClimbDetectionDistance;
+    public float WallStickDistance;
     public float InputH;
     public float InputV;
     public bool JumpPressed;
