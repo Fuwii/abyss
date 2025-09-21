@@ -10,8 +10,7 @@ namespace Game.Player.Movement.Climbing
         public LayerMask ClimbableLayers;
         public float ClimbDetectionDistance;
         public float WallStickDistance;
-        public float InputH;
-        public float InputV;
+        public Vector2 MoveInput;
         public bool JumpPressed;
         public float StaminaMoveCost;
         public float StaminaIdleCost;
@@ -24,6 +23,7 @@ namespace Game.Player.Movement.Climbing
 
         // delegate for consuming stamina (returns true if consumption succeeded)
         public Func<float, bool> ConsumeStamina;
+        public Func<bool> IsGrounded;
 
         // requests hooks to the orchestrator
         public Action RequestNoStamina;

@@ -22,7 +22,7 @@ namespace Game.Player.Movement.Climbing
             var climbDir = ctx.CurrentClimbable.GetClimbDirection().normalized; // ����������� ����� �� �������
 
             // Movement along the climb direction (inputV up/down)
-            var move = ctx.InputV; // -1..1 : 
+            var move = ctx.MoveInput.x; // -1..1 : 
             if (CheckIsTopReached(ctx, topSnapDistance, climbDir))
             {
                 Debug.Log("TOP");

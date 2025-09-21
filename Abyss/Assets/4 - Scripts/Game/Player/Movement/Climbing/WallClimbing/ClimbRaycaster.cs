@@ -19,7 +19,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var headPos = center + Vector3.up * (h * (0.9f - 0.5f)); // headHeightFactor = 0.9f
 
             var forward = ctx.Transform.forward;
-            var inputDir = (ctx.Transform.forward * ctx.InputV + ctx.Transform.right * ctx.InputH);
+            var inputDir = ctx.Transform.forward * ctx.MoveInput.y + ctx.Transform.right * ctx.MoveInput.y;
             if (inputDir.sqrMagnitude < 0.001f) inputDir = forward;
             inputDir = inputDir.normalized;
 
@@ -37,7 +37,8 @@ namespace Game.Player.Movement.Climbing.WallClimbing
 
             // torso lateral casts when horizontal input significant
             var torsoHit = false;
-            var horiz = ctx.InputH;
+            var horiz = ctx.MoveInput.x;
+
             if (Mathf.Abs(horiz) > 0.2f)
             {
                 var lateralCastDir90 = ctx.Transform.right * Mathf.Sign(horiz);
@@ -93,7 +94,6 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             // fallback: forward spherecast from torso
             var sphereHits = Physics.SphereCastAll(torsoPos, Mathf.Max(0.05f, ctx.Rigidbody != null ? ctx.Rigidbody.transform.localScale.x * 0.5f : 0.35f),
                 forward, maxDist, ctx.ClimbableLayers);
-
             if (sphereHits != null && sphereHits.Length > 0)
             {
                 foreach (var sh in sphereHits) allHits.Add(sh);
@@ -113,11 +113,10 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             }
 
             // lateral spherecast fallback when input H significant
-            if (allHits.Count == 0 && Mathf.Abs(ctx.InputH) > 0.3f)
+            if (allHits.Count == 0 && Mathf.Abs(ctx.MoveInput.x) > 0.3f)
             {
-                var lateralDirCast = ctx.Transform.right * Mathf.Sign(ctx.InputH);
+                var lateralDirCast = ctx.Transform.right * Mathf.Sign(ctx.MoveInput.x);
                 var latHits = Physics.SphereCastAll(torsoPos, Mathf.Max(0.2f, 0.5f * 1.2f), lateralDirCast, maxDist, ctx.ClimbableLayers);
-
                 if (latHits != null && latHits.Length > 0)
                 {
                     foreach (var hh in latHits) allHits.Add(hh);
