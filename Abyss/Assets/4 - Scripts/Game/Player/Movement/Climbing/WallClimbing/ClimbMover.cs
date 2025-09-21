@@ -6,8 +6,6 @@ namespace Game.Player.Movement.Climbing.WallClimbing
 {
     public class ClimbMover
     {
-        private const float DebugRayDuration = 0.18f;
-
         public void ApplyMovement(ClimbingContext ctx, RaycastHit hit, List<RaycastHit> allHits,
             Vector3 usedNormal, Vector3 lateralDir, bool edgeDetected, ClimbConfig config)
         {
@@ -41,14 +39,33 @@ namespace Game.Player.Movement.Climbing.WallClimbing
                 }
             }
 
+            //ensure usedNormal is normalized
+            usedNormal = usedNormal.normalized;
+
+            // prefer transform position as reference (Rigidbody.position may be offset/interpolated)
+            var refPos = ctx.Transform != null
+                ? ctx.Transform.position
+                : ctx.Rigidbody != null
+                    ? ctx.Rigidbody.position
+                    : Vector3.zero;
+
+            // if normal points the wrong way (into the wall), flip it so it points from hit.point toward player
+            if (Vector3.Dot(usedNormal, refPos - hit.point) < 0f)
+            {
+                usedNormal = -usedNormal;
+            }
+
+            // compute offset on wall plane relative to hit.point
+            var currentOffsetOnPlane = Vector3.ProjectOnPlane(refPos - hit.point, usedNormal);
+
+            // final desired base position: hit.point + offset along plane + normal*stick
             var stick = config.wallStickDistance;
             if (edgeDetected) stick *= 1.12f;
 
-            var currentOffsetOnPlane = Vector3.ProjectOnPlane(ctx.Rigidbody.position - hit.point, usedNormal);
             var desiredBasePos = hit.point + currentOffsetOnPlane + usedNormal * stick;
 
-            var shaped = MathExtensions.SquareToCircle(new Vector2(ctx.InputH, ctx.InputV));
-            var moveDirection = (wallUp * shaped.y) + (lateralDir * shaped.x);
+            var shaped = MathExtensions.SquareToCircle(ctx.MoveInput);
+            var moveDirection = wallUp * shaped.y + lateralDir * shaped.x;
             moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
 
             ctx.ClimbingSubState = moveDirection == Vector3.zero
@@ -61,11 +78,25 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var targetRot = Quaternion.LookRotation(-usedNormal, wallUp);
             ctx.Transform.rotation = Quaternion.Slerp(ctx.Transform.rotation, targetRot, 10f * Time.fixedDeltaTime);
 
-            var verticalSpeed = (shaped.y < 0f) ? config.descentSpeed : config.climbSpeed;
+            // normal correction + velocity
+            var verticalSpeed = shaped.y < 0f ? config.descentSpeed : config.climbSpeed;
             var lateralSpeed = config.climbSpeed;
 
-            var targetVel = (wallUp * (shaped.y * verticalSpeed)) + (lateralDir * (shaped.x * lateralSpeed));
-            var maxComponentSpeed = Mathf.Max(Mathf.Abs(verticalSpeed), Mathf.Abs(lateralSpeed));
+            var bodyCenter = ctx.Rigidbody != null ? ctx.Rigidbody.worldCenterOfMass : ctx.Transform.position;
+
+            var currentAlongNormal = Vector3.Dot(bodyCenter - hit.point, usedNormal);
+
+            var desiredAlongNormal = stick;
+            var distError = desiredAlongNormal - currentAlongNormal;
+
+            var normalSpringK = 12f;
+            var maxNormalSpeed = 5f;
+
+            var desiredNormalVel = Mathf.Clamp(distError * normalSpringK, -maxNormalSpeed, maxNormalSpeed);
+
+            var targetVel = wallUp * (shaped.y * verticalSpeed) + lateralDir * (shaped.x * lateralSpeed) + usedNormal * desiredNormalVel;
+
+            var maxComponentSpeed = Mathf.Max(Mathf.Abs(verticalSpeed), Mathf.Abs(lateralSpeed)) + maxNormalSpeed;
             if (targetVel.magnitude > maxComponentSpeed)
                 targetVel = targetVel.normalized * maxComponentSpeed;
 
@@ -74,7 +105,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var newVel = Vector3.MoveTowards(currentVel, targetVel, maxDeltaSpeed);
             ctx.Rigidbody.linearVelocity = newVel;
 
-            // Pull-up check (��� ����)
+            // Pull-up check 
             if (ctx.ClimbingSubState == FpsPlayerClimbing.ClimbingSubState.Moving)
             {
                 var playerHeight = ctx.PlayerHeight;
@@ -93,16 +124,6 @@ namespace Game.Player.Movement.Climbing.WallClimbing
                     }
                 }
             }
-
-            // Debug draws
-            foreach (var h in allHits)
-                Debug.DrawRay(h.point, h.normal * 0.35f, Color.yellow, DebugRayDuration);
-
-            Debug.DrawRay(hit.point, hit.normal * 0.4f, Color.red, DebugRayDuration);
-            Debug.DrawRay(hit.point, usedNormal * 0.4f, Color.green, DebugRayDuration);
-            Debug.DrawRay(ctx.Transform.position + Vector3.up * (ctx.PlayerHeight * 0.5f), lateralDir * 0.6f, Color.cyan, DebugRayDuration);
-
-            Debug.Log($"3Cast_hits={allHits.Count} sampled=? edge={edgeDetected} used={usedNormal} lateral={lateralDir}");
         }
     }
 }

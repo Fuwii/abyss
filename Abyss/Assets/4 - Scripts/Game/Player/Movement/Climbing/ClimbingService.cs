@@ -29,13 +29,11 @@ namespace Game.Player.Movement.Climbing
             ctx.RequestPullUp = (req) => OnPullUpRequested?.Invoke(req);
             ctx.RequestTransitionToFalling = () => OnTransitionToFallingRequested?.Invoke();
             ctx.RequestNoStamina = () => OnNoStaminaRequested?.Invoke();
-            Debug.Log(handler);
 
             if (handler != null && handler != _activeHandler)
             {
                 _activeHandler = handler;
 
-                // можешь вызвать OnEnter/OnExit у handler'ов при необходимости
             }
 
             if (_activeHandler != null)
@@ -49,5 +47,3 @@ namespace Game.Player.Movement.Climbing
         }
     }
 }
-
-// Context object passed into ClimbingService for a single FixedUpdate

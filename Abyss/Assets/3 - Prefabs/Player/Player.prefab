@@ -241,15 +241,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6
   airControlMul: 0.5
-  jumpForce: 5
+  jumpForce: 10
   groundDrag: 6
-  maxAccelGround: 20
+  maxAccelGround: 40
   maxAccelAir: 8
   maxWalkableAngle: 45
   slideSpeed: 6
   groundMask:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 1025
   groundCheck: {fileID: 6413318836065880761}
   groundCheckDistance: 0.12
   groundCheckRadius: 0.25
@@ -272,14 +272,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9afbf52be42ce8943aab6dd7af32f466, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  state: 1
-  climbingState: 1
+  state: 0
+  climbingState: 0
   climbSpeed: 2
   descentSpeed: 6
   climbJumpForce: 5
   jumpForce: 5
-  climbDetectionDistance: 1.5
-  wallStickDistance: 0.05
+  climbDetectionDistance: 1
+  wallStickDistance: 0.55
   staminaClimbCost: 5
   staminaClimbIdleCost: 1
   maxFallSpeed: 20
@@ -332,7 +332,7 @@ MonoBehaviour:
   groundCheck: {fileID: 6413318836065880761}
   groundMask:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 1025
   groundCheckDistance: 0.12
   groundCheckRadius: 0.25
   minGroundNormalY: 0.65

@@ -127,16 +127,15 @@ namespace Game.Player.Movement.Ground
 
         void Update()
         {
-            // Look: передаём inputLook в LookHandler (там инверсия по Y уже сделана)
+            // Look: 
             _lookHandler.ApplyLook(_inputLook, ref _yaw, ref _pitch, _climbingSystem);
 
-            // Jump immediate (как в оригинале): Update может вызвать прыжок при isGrounded
+            // Jump immediate
             if (_jumpPressed && isGrounded &&
                 (_climbingSystem == null || _climbingSystem.state == FpsPlayerClimbing.PlayerState.Walking))
             {
                 Jump();
 
-                // сброс флага — в FixedUpdate (чтобы имитировать ресэмплинг)
             }
 
             if (_climbingSystem && _climbingSystem.state != FpsPlayerClimbing.PlayerState.Walking)
@@ -151,8 +150,8 @@ namespace Game.Player.Movement.Ground
                 (_climbingSystem.state == FpsPlayerClimbing.PlayerState.Climbing ||
                  _climbingSystem.state == FpsPlayerClimbing.PlayerState.NoStaminaFalling))
                 return;
-
-            _rb.linearDamping = isGrounded ? groundDrag : 0f;
+            //Не уверен что необходимо, нужны тесты
+            //_rb.linearDamping = isGrounded ? groundDrag : 0f;
 
             var wishDir = (transform.forward * _inputMove.y + transform.right * _inputMove.x);
             if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
@@ -161,7 +160,6 @@ namespace Game.Player.Movement.Ground
 
             _mover.ApplyMovement(wishDir, isGrounded, groundNormal, currVel, Time.fixedDeltaTime);
 
-            // очистка одноразового события
             _jumpPressed = false;
         }
 
