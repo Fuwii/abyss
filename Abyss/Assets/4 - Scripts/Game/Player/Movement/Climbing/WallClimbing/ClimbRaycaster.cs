@@ -70,7 +70,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             }
 
             // choose bestHit if any
-            if (allHits.Count > 0)
+            if (allHits.Count > 1)
             {
                 var bestScore = float.MaxValue;
                 var chosen = allHits[0];
@@ -107,8 +107,10 @@ namespace Game.Player.Movement.Climbing.WallClimbing
                         best = sh;
                     }
                 }
-
+                Debug.Log("sphere");
                 bestHit = best;
+
+                Debug.Log($"[Raycaster] bestHit.point={bestHit.point}, normal={bestHit.normal}");
                 return true;
             }
 
