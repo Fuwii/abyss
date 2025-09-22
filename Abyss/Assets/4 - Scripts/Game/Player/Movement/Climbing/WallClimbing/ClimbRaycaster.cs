@@ -107,10 +107,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
                         best = sh;
                     }
                 }
-                Debug.Log("sphere");
                 bestHit = best;
-
-                Debug.Log($"[Raycaster] bestHit.point={bestHit.point}, normal={bestHit.normal}");
                 return true;
             }
 
