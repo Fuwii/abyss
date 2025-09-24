@@ -26,17 +26,13 @@ namespace Game.Player.Stamina
 
         public float DefaultRecoveryRate => defaultRecoveryRate;
 
-        void Awake()
+        private void Start()
         {
             currentMaxBaseStamina = maxBaseStamina;
-        }
-
-        void Start()
-        {
             _currentStamina = GetTotalMax();
         }
 
-        void Update()
+        private void Update()
         {
             var dt = Time.deltaTime;
 

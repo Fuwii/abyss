@@ -49,7 +49,7 @@ namespace Game.Player.Movement.Climbing
         ClimbConfig _climbConfig;
         ClimbingContext _climbingContext;
 
-        void Awake()
+        private void Start()
         {
             _rb = GetComponent<Rigidbody>();
             if (!cameraTransform && Camera.main) cameraTransform = Camera.main.transform;

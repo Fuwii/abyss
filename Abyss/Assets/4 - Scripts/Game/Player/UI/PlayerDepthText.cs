@@ -3,34 +3,32 @@ using TMPro;
 
 namespace Game.Player.UI
 {
-    public class PlayerDepthtText : MonoBehaviour
+    public class PlayerDepthText : MonoBehaviour
     {
-        private TMP_Text heightText;
-        private Transform player;
+        private TMP_Text _heightText;
+        private Transform _player;
 
-        private void Awake()
+        private void Start()
         {
-            player = transform;
-            heightText = GameObject.FindWithTag("DepthText").GetComponent<TMP_Text>();
+            _player = transform;
+            _heightText = GameObject.FindWithTag("DepthText").GetComponent<TMP_Text>();
         }
 
         private void Update()
         {
-            if (heightText == null) return;
+            if (!_heightText) return;
 
-            float y = player.position.y;
+            var y = _player.position.y;
 
             if (y > 0f)
             {
-                heightText.text = "0 m.";
+                _heightText.text = "0 m.";
             }
             else
             {
                 int meters = Mathf.FloorToInt(y);
-                heightText.text = meters + " m.";
+                _heightText.text = meters + " m.";
             }
         }
     }
-
 }
-
