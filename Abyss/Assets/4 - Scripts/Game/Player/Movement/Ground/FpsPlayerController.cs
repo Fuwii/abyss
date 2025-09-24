@@ -1,3 +1,4 @@
+using Core.Utils;
 using Game.Player.Input;
 using Game.Player.Movement.Climbing;
 using UnityEngine;
@@ -49,7 +50,7 @@ namespace Game.Player.Movement.Ground
         private PlayerMover _mover;
         private FpsPlayerClimbing _climbingSystem;
 
-        void Awake()
+        private void Start()
         {
             _rb = GetComponent<Rigidbody>();
             _rb.useGravity = true;
@@ -108,6 +109,8 @@ namespace Game.Player.Movement.Ground
             InputManager.OnJumpPressed += HandleJumpPressed;
             InputManager.OnLeftClickStarted += HandleLeftClickStart;
             InputManager.OnLeftClickCanceled += HandleLeftClickCancel;
+
+            playerCamera.SetActive(true);
         }
 
         private void OnDisable()
@@ -117,6 +120,8 @@ namespace Game.Player.Movement.Ground
             InputManager.OnJumpPressed -= HandleJumpPressed;
             InputManager.OnLeftClickStarted -= HandleLeftClickStart;
             InputManager.OnLeftClickCanceled -= HandleLeftClickCancel;
+
+            playerCamera.SetActive(false);
         }
 
         private void HandleMoveChanged(Vector2 v) => _inputMove = Vector2.ClampMagnitude(v, 1f);
@@ -125,7 +130,7 @@ namespace Game.Player.Movement.Ground
         private void HandleLeftClickStart() => _leftClickHeld = true;
         private void HandleLeftClickCancel() => _leftClickHeld = false;
 
-        void Update()
+        private void Update()
         {
             // Look: 
             _lookHandler.ApplyLook(_inputLook, ref _yaw, ref _pitch, _climbingSystem);
@@ -135,14 +140,13 @@ namespace Game.Player.Movement.Ground
                 (_climbingSystem == null || _climbingSystem.state == FpsPlayerClimbing.PlayerState.Walking))
             {
                 Jump();
-
             }
 
             if (_climbingSystem && _climbingSystem.state != FpsPlayerClimbing.PlayerState.Walking)
                 return;
         }
 
-        void FixedUpdate()
+        private void FixedUpdate()
         {
             _groundChecker.CheckGround(out isGrounded, out groundNormal);
 
@@ -150,6 +154,7 @@ namespace Game.Player.Movement.Ground
                 (_climbingSystem.state == FpsPlayerClimbing.PlayerState.Climbing ||
                  _climbingSystem.state == FpsPlayerClimbing.PlayerState.NoStaminaFalling))
                 return;
+
             //Не уверен что необходимо, нужны тесты
             //_rb.linearDamping = isGrounded ? groundDrag : 0f;
 

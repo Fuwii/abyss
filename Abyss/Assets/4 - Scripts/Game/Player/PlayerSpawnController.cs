@@ -45,7 +45,7 @@ namespace Game.Player
             var player = Instantiate(playerAsset);
             var network = player.GetComponent<NetworkObject>();
 
-            network.Spawn(true);
+            network.SpawnAsPlayerObject(id, true);
 
             _players.Add(id, network);
 
