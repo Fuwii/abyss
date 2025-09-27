@@ -50,6 +50,9 @@ namespace Game.Player.Movement.Climbing
         ClimbingContext _climbingContext;
         //test for active ragdoll
         private Rigidbody[] _allRbs;
+        //For Animator
+        public Vector2 CurrentInputMove => _inputMove;
+
 
         void Awake()
         {
