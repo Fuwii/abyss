@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Game.Player.Movement.Climbing
 {
-    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+    [RequireComponent(typeof(Rigidbody))]
     public class FpsPlayerClimbing : MonoBehaviour
     {
         public enum PlayerState
@@ -48,6 +48,13 @@ namespace Game.Player.Movement.Climbing
         const float MinWallAngleDeg = 70f, LookAlignmentThreshold = 0.7f;
         ClimbConfig _climbConfig;
         ClimbingContext _climbingContext;
+        //test for active ragdoll
+        private Rigidbody[] _allRbs;
+
+        void Awake()
+        {
+            _allRbs = transform.root.GetComponentsInChildren<Rigidbody>();
+        }
 
         private void Start()
         {
@@ -117,7 +124,11 @@ namespace Game.Player.Movement.Climbing
                     if (!ctx.IsClimbingObject && _climbingContext != null) _climbingContext.CurrentClimbable = null;
                     break;
             }
-
+            //disable grav for rbs
+            foreach(var rb in _allRbs)
+            {
+                rb.useGravity = state!=PlayerState.Climbing;
+            }
             _rb.useGravity = state != PlayerState.Climbing;
             _jumpPressed = false;
         }

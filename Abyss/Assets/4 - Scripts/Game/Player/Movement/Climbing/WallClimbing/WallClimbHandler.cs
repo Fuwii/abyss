@@ -21,7 +21,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
         {
             if (ctx == null) return false;
 
-            // stamina - поведение сохранено
+            // stamina 
             var cost = 0f;
             switch (ctx.ClimbingSubState)
             {

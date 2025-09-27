@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Game.Player.Movement.Ground
 {
-    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+    [RequireComponent(typeof(Rigidbody))]
     public class FpsPlayerController : MonoBehaviour
     {
         [Header("Movement")]

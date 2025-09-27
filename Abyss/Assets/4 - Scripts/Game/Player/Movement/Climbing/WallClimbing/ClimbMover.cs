@@ -59,7 +59,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var currentOffsetOnPlane = Vector3.ProjectOnPlane(refPos - hit.point, usedNormal);
 
             // final desired base position: hit.point + offset along plane + normal*stick
-            var stick = config.wallStickDistance;
+            var stick = ctx.WallStickDistance;
             if (edgeDetected) stick *= 1.12f;
 
             var desiredBasePos = hit.point + currentOffsetOnPlane + usedNormal * stick;
