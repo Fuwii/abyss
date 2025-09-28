@@ -1,52 +1,59 @@
+using System;
 using System.Collections.Generic;
+using Core.Singleton;
 using Game.Mechanics.Random.Seed;
 using UnityEngine;
 
 namespace Game.Mechanics.Random
 {
-    public class RandomizationManager : MonoBehaviour
+    public class RandomizationManager : Singleton<RandomizationManager>
     {
         [Header("General")]
-        public long worldSeed = 12345;
-        public RandomMode mode = RandomMode.Independent;
+        [SerializeField] private RandomMode mode = RandomMode.Independent;
 
         [Header("Filled by Collector (editor)")]
-        public List<RandomizableComponent> allRandomizables = new();
+        [SerializeField] private RandomizableComponent[] randomizableComponents;
 
         [Header("Assign the IRandomizer components here (drag your TreeRandomizer, LootRandomizer, etc.)")]
-        public MonoBehaviour[] randomizerComponents; // drag components that implement IRandomizer
+        [SerializeField] private MonoBehaviour[] randomizers;
 
         private readonly Dictionary<RandomCategory, IRandomizer> _map = new();
 
-        void Awake()
+        protected override void Awake()
         {
+            base.Awake();
+
             _map.Clear();
-            foreach (var mb in randomizerComponents)
+
+            foreach (var mb in randomizers)
                 if (mb is IRandomizer r)
                     _map[r.Category] = r;
         }
 
-        public void RunAllRandomizations()
+        public void Run(ulong seed)
         {
             if (mode == RandomMode.Sequential)
             {
-                var rng = new SeededRandom((ulong)worldSeed);
-                allRandomizables.Sort((a, b) => a.persistentId.CompareTo(b.persistentId));
-                foreach (var comp in allRandomizables)
+                var rng = new SeededRandom(seed);
+
+                Array.Sort(randomizableComponents, (a, b) => a.persistentId.CompareTo(b.persistentId));
+
+                foreach (var comp in randomizableComponents)
                 {
-                    if (_map.TryGetValue(comp.Category, out var r))
-                        r.Randomize(comp, ref rng, worldSeed, mode);
+                    if (!_map.TryGetValue(comp.Category, out var randomizer)) continue;
+
+                    randomizer.Randomize(comp, ref rng, seed, mode);
                 }
             }
             else
             {
-                foreach (var comp in allRandomizables)
+                foreach (var comp in randomizableComponents)
                 {
-                    if (_map.TryGetValue(comp.Category, out var r))
-                    {
-                        var dummy = new SeededRandom((ulong)worldSeed);
-                        r.Randomize(comp, ref dummy, worldSeed, mode);
-                    }
+                    if (!_map.TryGetValue(comp.Category, out var randomizer)) continue;
+
+                    var dummy = new SeededRandom(seed);
+
+                    randomizer.Randomize(comp, ref dummy, seed, mode);
                 }
             }
         }

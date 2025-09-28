@@ -13,10 +13,8 @@ namespace Core.Singleton
 
         private CancellationTokenSource _tokenSource;
 
-        protected override void OnNetworkPreSpawn(ref NetworkManager networkManager)
+        protected virtual void Awake()
         {
-            base.OnNetworkPreSpawn(ref networkManager);
-
             if (Instance != null)
             {
                 Debug.LogWarning($"Another instance of {Instance} is already exists");
@@ -34,10 +32,22 @@ namespace Core.Singleton
 
             _tokenSource.Cancel();
             _tokenSource.Dispose();
+            _tokenSource = null;
+
+            base.OnNetworkDespawn();
+        }
+
+        public override void OnDestroy()
+        {
+            if (Instance != this)
+                return;
+
+            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
 
             Instance = null;
 
-            base.OnNetworkDespawn();
+            base.OnDestroy();
         }
     }
 }

@@ -629,7 +629,6 @@ MonoBehaviour:
   nicknameText: {fileID: 1795476912865835534}
   showDistance: 15
   playerRoot: {fileID: 3523993985495252278}
-  localCamera: {fileID: 8677201618951349459}
 --- !u!1 &3233786347496839536
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,7 +5,7 @@ using Unity.Netcode.Transports.UTP;
 
 namespace Services.Network
 {
-    public class NetworkService : Service<NetworkService>
+    public sealed class NetworkService : Service<NetworkService>
     {
         private readonly CompositeDisposable _disposable = new();
 

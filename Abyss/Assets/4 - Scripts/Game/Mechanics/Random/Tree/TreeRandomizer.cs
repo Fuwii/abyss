@@ -8,7 +8,7 @@ namespace Game.Mechanics.Random.Tree
     {
         public RandomCategory Category => RandomCategory.Tree;
 
-        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, long worldSeed, RandomMode mode)
+        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, ulong worldSeed, RandomMode mode)
         {
             var tree = comp as TreeRandomizable;
             if (tree == null) return;

@@ -8,7 +8,7 @@ namespace Game.Mechanics.Random.Transform
     {
         public RandomCategory Category => RandomCategory.Transform;
 
-        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, long worldSeed, RandomMode mode)
+        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, ulong worldSeed, RandomMode mode)
         {
             var tComp = comp as TransformRandomizable;
             if (tComp == null) return;
@@ -25,18 +25,26 @@ namespace Game.Mechanics.Random.Transform
             //Position
             var posDelta = GetRandomPositionDelta(tComp.positionPreset, ref localRng);
             if (tComp.useLocal)
+            {
                 target.localPosition += posDelta;
+            }
             else
+            {
                 target.position += posDelta;
+            }
 
             //Rotation 
             var rotDelta = GetRandomRotationDelta(tComp.rotationPreset, ref localRng);
             var deltaQuat = Quaternion.Euler(rotDelta);
 
             if (tComp.useLocal)
+            {
                 target.localRotation *= deltaQuat;
+            }
             else
+            {
                 target.rotation *= deltaQuat;
+            }
         }
 
         private Vector3 GetRandomPositionDelta(TransformVariationPreset preset, ref SeededRandom rng)
