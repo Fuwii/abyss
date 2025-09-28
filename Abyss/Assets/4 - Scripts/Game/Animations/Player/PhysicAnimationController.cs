@@ -8,7 +8,7 @@ public class PhysicAnimationController : MonoBehaviour
         syncPhysicsObjects = GetComponentsInChildren<SyncPhysicsObject>();
     }
 
-    void Update()
+    void LateUpdate()
     {
         foreach(SyncPhysicsObject obj in syncPhysicsObjects)
         {

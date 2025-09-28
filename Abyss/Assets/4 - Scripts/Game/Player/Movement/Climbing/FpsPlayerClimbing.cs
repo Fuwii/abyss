@@ -43,7 +43,9 @@ namespace Game.Player.Movement.Climbing
         bool _prevGroundedDuringClimb;
         MovementService _movementService;
         ClimbingService _climbingService;
-        Vector2 _inputMove, _inputLook;
+        Vector2 _inputMove;
+        Vector2 _inputLook;
+        Vector2 _inputRaw;
         bool _jumpPressed, _leftClickHeld;
         const float MinWallAngleDeg = 70f, LookAlignmentThreshold = 0.7f;
         ClimbConfig _climbConfig;
@@ -51,7 +53,7 @@ namespace Game.Player.Movement.Climbing
         //test for active ragdoll
         private Rigidbody[] _allRbs;
         //For Animator
-        public Vector2 CurrentInputMove => _inputMove;
+        public Vector2 CurrentInputMove => _inputRaw;
 
 
         void Awake()
@@ -80,8 +82,12 @@ namespace Game.Player.Movement.Climbing
 
         void OnDisable() =>
             FpsPlayerClimbingUtils.UnsubscribeInput(HandleMoveChanged, HandleLookChanged, HandleJumpPressed, HandleLeftClickStart, HandleLeftClickCancel);
-
-        void HandleMoveChanged(Vector2 v) => _inputMove = Vector2.ClampMagnitude(v, 1f);
+        //очень надо вынести это
+        void HandleMoveChanged(Vector2 v)
+        {
+            _inputRaw = v;
+            _inputMove = Vector2.ClampMagnitude(v, 1f); 
+        }
         void HandleLookChanged(Vector2 v) => _inputLook = v;
         void HandleJumpPressed() => _jumpPressed = true;
         void HandleLeftClickStart() => _leftClickHeld = true;
