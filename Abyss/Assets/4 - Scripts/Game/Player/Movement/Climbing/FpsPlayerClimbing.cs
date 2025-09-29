@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Game.Player.Movement.Climbing
 {
-    [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+    [RequireComponent(typeof(Rigidbody))]
     public class FpsPlayerClimbing : MonoBehaviour
     {
         public enum PlayerState
@@ -43,11 +43,23 @@ namespace Game.Player.Movement.Climbing
         bool _prevGroundedDuringClimb;
         MovementService _movementService;
         ClimbingService _climbingService;
-        Vector2 _inputMove, _inputLook;
+        Vector2 _inputMove;
+        Vector2 _inputLook;
+        Vector2 _inputRaw;
         bool _jumpPressed, _leftClickHeld;
         const float MinWallAngleDeg = 70f, LookAlignmentThreshold = 0.7f;
         ClimbConfig _climbConfig;
         ClimbingContext _climbingContext;
+        //test for active ragdoll
+        private Rigidbody[] _allRbs;
+        //For Animator
+        public Vector2 CurrentInputMove => _inputRaw;
+
+
+        void Awake()
+        {
+            _allRbs = transform.root.GetComponentsInChildren<Rigidbody>();
+        }
 
         private void Start()
         {
@@ -70,8 +82,12 @@ namespace Game.Player.Movement.Climbing
 
         void OnDisable() =>
             FpsPlayerClimbingUtils.UnsubscribeInput(HandleMoveChanged, HandleLookChanged, HandleJumpPressed, HandleLeftClickStart, HandleLeftClickCancel);
-
-        void HandleMoveChanged(Vector2 v) => _inputMove = Vector2.ClampMagnitude(v, 1f);
+        //очень надо вынести это
+        void HandleMoveChanged(Vector2 v)
+        {
+            _inputRaw = v;
+            _inputMove = Vector2.ClampMagnitude(v, 1f); 
+        }
         void HandleLookChanged(Vector2 v) => _inputLook = v;
         void HandleJumpPressed() => _jumpPressed = true;
         void HandleLeftClickStart() => _leftClickHeld = true;
@@ -117,7 +133,11 @@ namespace Game.Player.Movement.Climbing
                     if (!ctx.IsClimbingObject && _climbingContext != null) _climbingContext.CurrentClimbable = null;
                     break;
             }
-
+            //disable grav for rbs
+            foreach(var rb in _allRbs)
+            {
+                rb.useGravity = state!=PlayerState.Climbing;
+            }
             _rb.useGravity = state != PlayerState.Climbing;
             _jumpPressed = false;
         }

@@ -10,7 +10,8 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             allHits = new List<RaycastHit>();
             bestHit = default;
 
-            var maxDist = ctx.WallStickDistance;
+            var minDetectionDist = 1f;
+            var maxDist = Mathf.Max(ctx.WallStickDistance, minDetectionDist);
             var center = ctx.Transform.position;
             var h = ctx.PlayerHeight > 0f ? ctx.PlayerHeight : 1.8f;
 
@@ -19,7 +20,7 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var headPos = center + Vector3.up * (h * (0.9f - 0.5f)); // headHeightFactor = 0.9f
 
             var forward = ctx.Transform.forward;
-            var inputDir = ctx.Transform.forward * ctx.MoveInput.y + ctx.Transform.right * ctx.MoveInput.y;
+            var inputDir = ctx.Transform.forward * ctx.MoveInput.y + ctx.Transform.right * ctx.MoveInput.x;
             if (inputDir.sqrMagnitude < 0.001f) inputDir = forward;
             inputDir = inputDir.normalized;
 
