@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Mechanics.Effects;
 using Game.Player.Stamina.Effects;
+using Unity.Multiplayer.Center.NetcodeForGameObjectsExample;
 using UnityEngine;
 
 namespace Game.Player.Stamina
@@ -20,7 +21,6 @@ namespace Game.Player.Stamina
         // runtime
         private float _currentRecoveryRate;
         private float _currentStamina;
-
         private readonly Dictionary<Type, StaminaEffect> _activeEffects = new();
         private readonly Stack<EffectSource> _sourcePool = new(64);
 
@@ -35,7 +35,6 @@ namespace Game.Player.Stamina
         private void Update()
         {
             var dt = Time.deltaTime;
-
             UpdateAllEffects(dt);
 
             _currentRecoveryRate = defaultRecoveryRate + _activeEffects.Values.Sum(e => GetEffectRecoveryModifier(e));
@@ -69,7 +68,7 @@ namespace Game.Player.Stamina
 
                     if (!src.Started)
                     {
-                        if (src.RemainingDelay > 0f)
+                        if (src.RemainingDelay >= 0f)
                         {
                             src.RemainingDelay -= dt;
                             if (src.RemainingDelay <= 0f)
@@ -109,12 +108,17 @@ namespace Game.Player.Stamina
                         }
                     }
                 }
-
-                if (effect.Sources.Count == 0 && effect.Stacks <= 0)
+                if (effect.Sources.Count == 0)
                 {
-                    effect.Expire(this);
-                    typesToRemove.Add(type);
+                    Debug.Log("Updated Decay");
+                    effect.UpdateDecay(this,dt);
+                    if (effect.Stacks <= 0)
+                    {
+                        effect.Expire(this);
+                        typesToRemove.Add(type);
+                    }
                 }
+                
             }
 
             // чистка завершённых эффектов
@@ -149,6 +153,11 @@ namespace Game.Player.Stamina
                 var inst = createIfMissing != null ? createIfMissing() : new T();
                 effectObj = inst;
                 _activeEffects[t] = effectObj;
+                if (EffectRegistry.Instance != null && EffectRegistry.Instance.TryGetDecayConfig(t, out var decayCfg))
+                {
+                    effectObj.ConfigureDecay(decayCfg);
+                    effectObj.InitializeDecay();
+                }
             }
 
             var effect = effectObj as T;
@@ -253,10 +262,6 @@ namespace Game.Player.Stamina
                 var deb = new ClimbingRecoveryDebuff();
                 deb.AddStacksInternal(this, 1);
                 _activeEffects[key] = deb;
-            }
-            else
-            {
-                // eff.AddStacksInternal(this, 1);
             }
         }
 

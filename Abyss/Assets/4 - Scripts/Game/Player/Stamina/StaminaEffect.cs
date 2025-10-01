@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Mechanics.Effects;
+using UnityEngine;
 
 namespace Game.Player.Stamina
 {
@@ -16,7 +17,11 @@ namespace Game.Player.Stamina
 
         /// <summary>Если AllowMultipleSources == false и RefreshExisting==true, то при Apply существующий источник будет рефрешнут.</summary>
         public virtual bool DefaultRefreshExisting => false;
-
+        /// <summary>
+        ///  Просто config для decay если эффект исчезает
+        /// </summary>
+        private DecaySourceConfig _decayCfg;
+        private readonly DecaySource _decay = new DecaySource();
         // Хуки
         protected virtual void OnStacksAdded(PlayerStamina playerStamina, int amount) { }
         protected virtual void OnStacksRemoved(PlayerStamina playerStamina, int amount) { }
@@ -29,6 +34,8 @@ namespace Game.Player.Stamina
         public void AddSource(EffectSource src)
         {
             Sources.Add(src);
+            if (_decayCfg != null)
+                _decay.Reset();
         }
 
         /// <summary>
@@ -37,6 +44,8 @@ namespace Game.Player.Stamina
         public void RemoveSourceAt(int index)
         {
             Sources.RemoveAt(index);
+            if (_decayCfg != null)
+                _decay.Reset();
         }
 
         /// <summary>
@@ -73,6 +82,42 @@ namespace Game.Player.Stamina
         public virtual float GetRecoveryModifier(PlayerStamina s)
         {
             return 0f;
+        }
+        /// <summary>
+        /// decay. 
+        /// Вызывать только если Sources.Count == 0.
+        /// Возвращает сколько стаков реально снято.
+        /// </summary>
+        public int UpdateDecay(PlayerStamina owner, float dt)
+        {
+            if (_decayCfg == null || Sources.Count > 0)
+                return 0;
+
+            int want = _decay.Update(dt);
+            if (want == 0) return 0;
+
+            if (want == int.MaxValue)
+            {
+                // снять всё
+                if (Stacks <= 0) return 0;
+                return RemoveStacksInternal(owner, Stacks);
+            }
+            else
+            {
+                // снять ограниченное число
+                var toRemove = Math.Min(Stacks, want);
+                if (toRemove <= 0) return 0;
+                return RemoveStacksInternal(owner, toRemove);
+            }
+        }
+        public void ConfigureDecay(DecaySourceConfig cfg)
+        {
+            _decayCfg = cfg;
+        }
+        public void InitializeDecay()
+        {
+            if (_decayCfg != null)
+                _decay.Init(_decayCfg);
         }
     }
 }
