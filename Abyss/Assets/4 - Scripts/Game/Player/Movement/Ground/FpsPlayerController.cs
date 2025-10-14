@@ -49,6 +49,15 @@ namespace Game.Player.Movement.Ground
         private GroundChecker _groundChecker;
         private PlayerMover _mover;
         private FpsPlayerClimbing _climbingSystem;
+        [Header("Step")]
+        public float stepHeight = 0.30f;
+        public float minStepHeight = 0.006f;
+        public float stepDuration = 0.38f;
+        public float checkDistance = 0.4f;
+        public float colliderRadius = 0.25f;
+        public float colliderYOffset = -0.75f;
+        public float lowOriginOffset = -0.22f; 
+
 
         private void Start()
         {
@@ -82,9 +91,22 @@ namespace Game.Player.Movement.Ground
                 MaxAccelGround = maxAccelGround,
                 MaxAccelAir = maxAccelAir,
                 MaxWalkableAngle = maxWalkableAngle,
-                SlideSpeed = slideSpeed
+                SlideSpeed = slideSpeed,
+
+                StepHeight = stepHeight,
+                MinStepHeight = minStepHeight,
+                StepDuration = stepDuration,
+                CheckDistance = checkDistance,
+                ColliderRadius = colliderRadius,
+                ColliderYOffset = colliderYOffset,
+                LowOriginOffset = lowOriginOffset,
+                GroundMask = groundMask,
             };
             _mover = new PlayerMover(_rb, cfg);
+
+
+
+
 
             if (groundCheck == null)
             {
@@ -179,5 +201,7 @@ namespace Game.Player.Movement.Ground
             _groundChecker.CheckGround(out var g, out var n);
             return g;
         }
+
+
     }
 }

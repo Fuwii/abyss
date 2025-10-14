@@ -9,65 +9,55 @@ namespace Game.Player.Movement.Climbing.WallClimbing
         public void ApplyMovement(ClimbingContext ctx, RaycastHit hit, List<RaycastHit> allHits,
             Vector3 usedNormal, Vector3 lateralDir, bool edgeDetected, ClimbConfig config)
         {
-            // compute wallUp and fallback wallRight
+            // Compute wallUp and wallRight 
             var wallUp = Vector3.ProjectOnPlane(Vector3.up, usedNormal);
             if (wallUp.sqrMagnitude < 1e-4f)
             {
                 wallUp = Vector3.Cross(usedNormal, ctx.Transform.right).normalized;
                 if (wallUp.sqrMagnitude < 1e-4f) wallUp = ctx.Transform.up;
             }
-
             wallUp.Normalize();
             var wallRight = Vector3.Cross(wallUp, usedNormal).normalized;
 
-            // ensure lateralDir valid and in wall plane
-            if (lateralDir.sqrMagnitude < 1e-6f)
-            {
-                lateralDir = -wallRight;
-            }
-            else
-            {
-                if (Vector3.Dot(lateralDir, -wallRight) < 0f) lateralDir = -lateralDir;
-                lateralDir = Vector3.ProjectOnPlane(lateralDir, usedNormal);
-                if (lateralDir.sqrMagnitude < 1e-6f)
-                {
-                    lateralDir = -wallRight;
-                }
-                else
-                {
-                    lateralDir.Normalize();
-                }
-            }
+            // Compute deterministic lateralDir based on player input
+            Vector3 playerRightOnWall = Vector3.ProjectOnPlane(ctx.Transform.right, usedNormal);
+            if (playerRightOnWall.sqrMagnitude < 1e-6f)
+                playerRightOnWall = wallRight;
+            playerRightOnWall.Normalize();
 
-            //ensure usedNormal is normalized
+            // Remove any vertical component along wallUp to avoid "off-wall" movement
+            lateralDir = Vector3.ProjectOnPlane(playerRightOnWall, wallUp);
+            if (lateralDir.sqrMagnitude < 1e-6f)
+                lateralDir = wallRight;
+            lateralDir.Normalize();
+
+            // Ensure usedNormal is normalized
             usedNormal = usedNormal.normalized;
 
-            // prefer transform position as reference (Rigidbody.position may be offset/interpolated)
-            var refPos = ctx.Transform != null
-                ? ctx.Transform.position
-                : ctx.Rigidbody != null
-                    ? ctx.Rigidbody.position
-                    : Vector3.zero;
+            // Prefer Transform position as reference
+            var refPos = ctx.Transform != null ? ctx.Transform.position
+                : ctx.Rigidbody != null ? ctx.Rigidbody.position : Vector3.zero;
 
-            // if normal points the wrong way (into the wall), flip it so it points from hit.point toward player
+            // Flip normal if pointing wrong way
             if (Vector3.Dot(usedNormal, refPos - hit.point) < 0f)
-            {
                 usedNormal = -usedNormal;
-            }
 
-            // compute offset on wall plane relative to hit.point
+            // Compute target position
             var currentOffsetOnPlane = Vector3.ProjectOnPlane(refPos - hit.point, usedNormal);
-
-            // final desired base position: hit.point + offset along plane + normal*stick
             var stick = ctx.WallStickDistance;
             if (edgeDetected) stick *= 1.12f;
-
             var desiredBasePos = hit.point + currentOffsetOnPlane + usedNormal * stick;
 
             var shaped = MathExtensions.SquareToCircle(ctx.MoveInput);
             var moveDirection = wallUp * shaped.y + lateralDir * shaped.x;
             moveDirection = Vector3.ClampMagnitude(moveDirection, 1f);
-
+            if (Mathf.Abs(ctx.MoveInput.x) > 0.2f || edgeDetected)
+            {
+                float moveAlongLat = Vector3.Dot(moveDirection, lateralDir);
+                float moveAlongUp = Vector3.Dot(moveDirection, wallUp);
+                var targetVelPreview = wallUp * (shaped.y * ((shaped.y < 0) ? config.descentSpeed : config.climbSpeed))
+                                       + lateralDir * (shaped.x * config.climbSpeed);
+            }
             ctx.ClimbingSubState = moveDirection == Vector3.zero
                 ? FpsPlayerClimbing.ClimbingSubState.Idle
                 : FpsPlayerClimbing.ClimbingSubState.Moving;
@@ -78,20 +68,17 @@ namespace Game.Player.Movement.Climbing.WallClimbing
             var targetRot = Quaternion.LookRotation(-usedNormal, wallUp);
             ctx.Transform.rotation = Quaternion.Slerp(ctx.Transform.rotation, targetRot, 10f * Time.fixedDeltaTime);
 
-            // normal correction + velocity
+            //Compute velocity along wall
             var verticalSpeed = shaped.y < 0f ? config.descentSpeed : config.climbSpeed;
             var lateralSpeed = config.climbSpeed;
 
             var bodyCenter = ctx.Rigidbody != null ? ctx.Rigidbody.worldCenterOfMass : ctx.Transform.position;
-
             var currentAlongNormal = Vector3.Dot(bodyCenter - hit.point, usedNormal);
-
             var desiredAlongNormal = stick;
             var distError = desiredAlongNormal - currentAlongNormal;
 
             var normalSpringK = 12f;
             var maxNormalSpeed = 5f;
-
             var desiredNormalVel = Mathf.Clamp(distError * normalSpringK, -maxNormalSpeed, maxNormalSpeed);
 
             var targetVel = wallUp * (shaped.y * verticalSpeed) + lateralDir * (shaped.x * lateralSpeed) + usedNormal * desiredNormalVel;
@@ -102,10 +89,9 @@ namespace Game.Player.Movement.Climbing.WallClimbing
 
             var currentVel = ctx.Rigidbody.linearVelocity;
             var maxDeltaSpeed = config.pushTowardWallVelDeltaPerSec * Time.fixedDeltaTime;
-            var newVel = Vector3.MoveTowards(currentVel, targetVel, maxDeltaSpeed);
-            ctx.Rigidbody.linearVelocity = newVel;
+            ctx.Rigidbody.linearVelocity = Vector3.MoveTowards(currentVel, targetVel, maxDeltaSpeed);
 
-            // Pull-up check 
+            //Pull-up check
             if (ctx.ClimbingSubState == FpsPlayerClimbing.ClimbingSubState.Moving)
             {
                 var playerHeight = ctx.PlayerHeight;
