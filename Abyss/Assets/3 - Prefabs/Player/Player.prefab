@@ -505,6 +505,14 @@ MonoBehaviour:
   pitchMin: -85
   pitchMax: 85
   isGrounded: 0
+  stepHeight: 0.3
+  minStepHeight: 0.06
+  stepDuration: 0.38
+  checkDistance: 0.4
+  colliderRadius: 0.25
+  colliderYOffset: -0.75
+  lowOriginOffset: -0.22
+  debugLogs: 1
 --- !u!114 &6776748995389974420
 MonoBehaviour:
   m_ObjectHideFlags: 0
