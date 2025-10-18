@@ -38,7 +38,7 @@ namespace Game.Player.Movement.Ground
         private float _pitch;
         [SerializeField] private bool isGrounded;
 
-        // input state (подписываемся на события)
+        // input state 
         private Vector2 _inputMove = Vector2.zero;
         private Vector2 _inputLook = Vector2.zero;
         private bool _jumpPressed;
@@ -103,9 +103,6 @@ namespace Game.Player.Movement.Ground
                 GroundMask = groundMask,
             };
             _mover = new PlayerMover(_rb, cfg);
-
-
-
 
 
             if (groundCheck == null)
