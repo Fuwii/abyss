@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7622390641529272725
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 10
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: GroundCloudsMaterial
+  m_Shader: {fileID: -6465566751694194690, guid: d471d271c94aedc40832cb1259a95c7a, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 2
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses:
+  - MOTIONVECTORS
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - unity_Lightmaps:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_LightmapsInd:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - unity_ShadowMasks:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BaseScale: 0.01
+    - _BaseSpeed: 20
+    - _Base_Strength: 2
+    - _CloudSpeed: 30
+    - _CloudsScale: 0.02
+    - _Curvature_Radius: -250
+    - _Emmision_Stregth: 0.5
+    - _FadeDepth: 59
+    - _FresnelOpacity: 1
+    - _Fresnel_Power: 8
+    - _NoiseHeight: 30
+    - _NoisePower: 1
+    - _QueueControl: 0
+    - _QueueOffset: 0
+    m_Colors:
+    - _Color_Peak: {r: 0.36078432, g: 0.5568628, b: 0.6117647, a: 0}
+    - _Color_Valley: {r: 0.7254902, g: 0.7372549, b: 0.81568635, a: 0}
+    - _NoiseRemap: {r: 0, g: 1, b: -0.3, a: 2.7}
+    - _NoiseSmooth: {r: -1, g: 2, b: 0, a: 0}
+    - _RotateProjection: {r: 1, g: 0, b: 0, a: 90}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
