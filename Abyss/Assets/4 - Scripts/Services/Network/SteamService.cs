@@ -83,6 +83,7 @@ namespace Services.Network
 
         private void LobbyEntered(Lobby lobby)
         {
+            _lobby = lobby;
             _onLobbyEntered.OnNext(lobby);
 
             Debug.Log($"Entered lobby {lobby}");
