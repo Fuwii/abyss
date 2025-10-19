@@ -11,6 +11,7 @@ namespace Game.Player
     public class PlayerSpawnController : NetworkSingleton<PlayerSpawnController>
     {
         [SerializeField] private GameObject playerAsset;
+        [SerializeField] private Transform spawnPoint;
 
         private readonly Dictionary<ulong, NetworkObject> _players = new();
         private readonly Subject<ulong> _onPlayerSpawn = new();
@@ -22,7 +23,7 @@ namespace Game.Player
         {
             base.OnNetworkSpawn();
 
-            if (!NetworkManager.IsHost && !NetworkManager.IsServer)
+            if (!NetworkManager.IsHost || !NetworkManager.IsServer)
                 return;
 
             var token = this.GetCancellationTokenOnDestroy();
@@ -40,12 +41,23 @@ namespace Game.Player
                 Spawn(client);
         }
 
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+
+            if (!NetworkManager.IsHost || !NetworkManager.IsServer)
+                return;
+
+            foreach (var client in NetworkManager.ConnectedClients.Keys)
+                Despawn(client);
+        }
+
         private void Spawn(ulong id)
         {
-            var player = Instantiate(playerAsset);
+            var player = Instantiate(playerAsset, spawnPoint.position, spawnPoint.rotation);
             var network = player.GetComponent<NetworkObject>();
 
-            network.SpawnAsPlayerObject(id, true);
+            network.SpawnAsPlayerObject(id);
 
             _players.Add(id, network);
 
@@ -67,7 +79,6 @@ namespace Game.Player
         private void PlayerSpawnRpc(ulong id)
         {
             _onPlayerSpawn.OnNext(id);
-            Debug.Log($"PlayerSpawnRpc {id}");
         }
     }
 }

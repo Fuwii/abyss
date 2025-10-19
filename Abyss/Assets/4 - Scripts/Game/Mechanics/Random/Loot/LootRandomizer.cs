@@ -8,7 +8,7 @@ namespace Game.Mechanics.Random.Loot
     {
         public RandomCategory Category => RandomCategory.LootPosition;
 
-        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, long worldSeed, RandomMode mode)
+        public void Randomize(RandomizableComponent comp, ref SeededRandom rng, ulong worldSeed, RandomMode mode)
         {
             var pos = comp as LootPositionRandomizable;
             if (pos == null || pos.allowedTables == null || pos.allowedTables.Length == 0)

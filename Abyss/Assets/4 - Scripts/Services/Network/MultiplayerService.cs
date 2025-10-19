@@ -12,7 +12,7 @@ using Netcode.Transports.Facepunch;
 
 namespace Services.Network
 {
-    public class NetworkService : Service<NetworkService>
+    public class MultiplayerService : Service<MultiplayerService>
     {
         private readonly CompositeDisposable _disposable = new();
 
