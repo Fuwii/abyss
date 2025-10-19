@@ -31642,6 +31642,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   playerAsset: {fileID: 2457687564484327083, guid: 3f5865c3f75d2b740baaec3e1a48b78d, type: 3}
+  spawnPoint: {fileID: 1031988354}
 --- !u!1 &1032551684
 GameObject:
   m_ObjectHideFlags: 0
