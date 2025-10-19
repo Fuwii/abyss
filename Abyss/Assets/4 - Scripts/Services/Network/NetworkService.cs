@@ -1,7 +1,14 @@
 using Core.Singleton;
 using R3;
 using Unity.Netcode;
+
+#if UNITY_EDITOR
 using Unity.Netcode.Transports.UTP;
+
+#else
+using Netcode.Transports.Facepunch;
+
+#endif
 
 namespace Services.Network
 {
@@ -59,7 +66,7 @@ namespace Services.Network
             NetworkManager.Singleton.NetworkConfig.NetworkTransport = transport;
 #else
             var transport = NetworkManager.Singleton.GetComponent<FacepunchTransport>();
-            transport.targetSteamId = lobby.Owner.Id;
+            transport.targetSteamId = SteamService.Instance.Lobby.Owner.Id;
 #endif
         }
     }
