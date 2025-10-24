@@ -43,7 +43,7 @@ Material:
     - _Base_Strength: 3
     - _CloudSpeed: 30
     - _CloudsScale: 0.02
-    - _Curvature_Radius: 250
+    - _Curvature_Radius: 220
     - _Emmision_Stregth: 0.001
     - _FadeDepth: 59
     - _FresnelOpacity: 1

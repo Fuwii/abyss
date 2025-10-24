@@ -24,7 +24,6 @@ namespace Game.Player.Movement.Climbing.WallClimbing
         // ������� ������������� (����� ������������ ��� �������������� ������������, �������)
         private readonly Queue<Vector3> _recentNormals = new Queue<Vector3>();
         private int _historySize = 6;
-        private float _clusterAngleDeg = 14f;
 
         public Vector3 SampleAndSmooth(List<RaycastHit> allHits, RaycastHit primaryHit, ClimbingContext ctx, ClimbConfig config, out Vector3 lateralDir, out bool edgeDetected)
         {

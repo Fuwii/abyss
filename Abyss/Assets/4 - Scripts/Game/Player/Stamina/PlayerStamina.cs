@@ -194,6 +194,79 @@ namespace Game.Player.Stamina
             return effect;
         }
 
+        public StaminaEffect ApplyEffect(EffectSourceConfig cfg)
+        {
+            if (EffectRegistry.Instance == null)
+            {
+                Debug.LogWarning("ApplyEffect: EffectRegistry.Instance == null");
+                return null;
+            }
+
+            if (!EffectRegistry.Instance.TryGetEffectType(cfg.effectType, out var effType))
+            {
+                Debug.LogWarning($"ApplyEffect: effect type for {cfg.effectType} not registered.");
+                return null;
+            }
+
+            // убеждаемся, что effType наследуется от StaminaEffect
+            if (!typeof(StaminaEffect).IsAssignableFrom(effType))
+            {
+                Debug.LogWarning($"ApplyEffect: registered type {effType.FullName} does not inherit StaminaEffect.");
+                return null;
+            }
+            if (!_activeEffects.TryGetValue(effType, out var effectObj))
+            {
+                StaminaEffect inst = null;
+                try
+                {
+                    inst = (StaminaEffect)Activator.CreateInstance(effType);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"ApplyEffect: failed to instantiate {effType.FullName}: {ex}");
+                    return null;
+                }
+
+                effectObj = inst;
+                _activeEffects[effType] = effectObj;
+
+                if (EffectRegistry.Instance != null && EffectRegistry.Instance.TryGetDecayConfig(effType, out var decayCfg))
+                {
+                    effectObj.ConfigureDecay(decayCfg);
+                    effectObj.InitializeDecay();
+                }
+            }
+
+            var effect = effectObj;
+            if (!effect.AllowMultipleSources)
+            {
+                if (cfg.refreshExisting || effect.DefaultRefreshExisting)
+                {
+                    foreach (var src in effect.Sources)
+                        ReturnSourceToPool(src);
+                    effect.Sources.Clear();
+                }
+                else
+                {
+                    if (effect.Sources.Count > 0)
+                    {
+                        var s0 = effect.Sources[0];
+                        s0.Init(cfg);
+                        if (cfg.initialStacks > 0)
+                            effect.AddStacksInternal(this, cfg.initialStacks);
+                        return effect;
+                    }
+                }
+            }
+            var newSource = GetSourceFromPool();
+            newSource.Init(cfg);
+
+            if (cfg.initialStacks > 0)
+                effect.AddStacksInternal(this, cfg.initialStacks);
+
+            effect.AddSource(newSource);
+            return effect;
+        }
         public int TryRemoveStacks<T>(int amount) where T : StaminaEffect
         {
             var t = typeof(T);
@@ -273,7 +346,7 @@ namespace Game.Player.Stamina
             // убираем 1 стек
             eff.RemoveStacksInternal(this, 1);
 
-            // если эффект больше пуст (нет стеков и нет источников) — удалим
+            // если эффект больше пуст (нет стеков и нет источников)  удаляем
             if (eff.Stacks == 0 && (eff.Sources == null || eff.Sources.Count == 0))
             {
                 eff.Expire(this);

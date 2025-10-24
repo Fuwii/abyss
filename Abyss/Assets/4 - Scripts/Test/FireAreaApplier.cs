@@ -10,7 +10,7 @@ namespace Game.Mechanics.Effects
         [Tooltip("ScriptableObject с конфигом источника эффекта")]
         public EffectSourceConfigSO configSO;
 
-        [Tooltip("Если true — будет накладывать эффект только при входе, иначе — при удержании (каждый Enter).")]
+        [Tooltip("Если true только при входе, иначе  (каждый Enter).")]
         public bool applyOncePerEnter = true;
 
         private void Reset()
@@ -30,8 +30,11 @@ namespace Game.Mechanics.Effects
 
         private void ApplyTo(PlayerStamina ps)
         {
-            var cfg = configSO.ToConfig();
-            var effect = ps.ApplyEffect<FireEffect>(cfg, () => new FireEffect());
+            //Old 
+            //var cfg = configSO.ToConfig();
+            //var effect = ps.ApplyEffect<FireEffect>(cfg, () => new FireEffect());
+            //New
+            ps.ApplyEffect(configSO.ToConfig());
         }
 
     }
