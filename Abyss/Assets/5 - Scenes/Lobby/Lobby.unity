@@ -54855,8 +54855,8 @@ MonoBehaviour:
   maxBufferCount: 2
   previewVisibleGrassCount: 0
   cameraBounds:
-    m_Center: {x: 354.48944, y: -85.97317, z: -846.4157}
-    m_Extent: {x: 289.15656, y: 173.16022, z: 202.71906}
+    m_Center: {x: 195.9017, y: -78.20039, z: -730.1488}
+    m_Extent: {x: 178.29892, y: 182.3969, z: 296.69434}
 --- !u!1 &1718614949
 GameObject:
   m_ObjectHideFlags: 0
@@ -68095,6 +68095,7 @@ GameObject:
   - component: {fileID: 5903079707246532955}
   - component: {fileID: 3076708763578035496}
   - component: {fileID: 488651400537896498}
+  - component: {fileID: 5903079707246532956}
   m_Layer: 10
   m_Name: hole_LOD0
   m_TagString: Untagged
@@ -68170,6 +68171,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1032551685}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &5903079707246532956
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 439546086426841358}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5974831515030895253, guid: 378ab984973c6874b81a46bab354ef8e, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

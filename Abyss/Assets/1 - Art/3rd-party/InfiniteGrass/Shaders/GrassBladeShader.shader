@@ -108,7 +108,7 @@
                 directSpecular = pow(directSpecular, 8.0); 
                 directSpecular *= positionY * 0.12;
                 half shadow = max(light.shadowAttenuation, 0.15);
-                half3 lighting = light.color * (shadow * light.distanceAttenuation*10);
+                half3 lighting = light.color * (shadow * light.distanceAttenuation);
                 half3 result = (albedo * directDiffuse + directSpecular * (1 - mask)) * lighting;
                 result += albedo * 0.05;
                 return result;
