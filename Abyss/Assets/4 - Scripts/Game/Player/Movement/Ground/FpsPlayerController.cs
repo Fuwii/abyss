@@ -154,12 +154,7 @@ namespace Game.Player.Movement.Ground
             // Look: 
             _lookHandler.ApplyLook(_inputLook, ref _yaw, ref _pitch, _climbingSystem);
 
-            // Jump immediate
-            if (_jumpPressed && isGrounded &&
-                (_climbingSystem == null || _climbingSystem.state == FpsPlayerClimbing.PlayerState.Walking))
-            {
-                Jump();
-            }
+           
 
             if (_climbingSystem && _climbingSystem.state != FpsPlayerClimbing.PlayerState.Walking)
                 return;
@@ -168,7 +163,9 @@ namespace Game.Player.Movement.Ground
         private void FixedUpdate()
         {
             _groundChecker.CheckGround(out isGrounded, out groundNormal);
-
+            //body rotation
+            var targetRot = Quaternion.Euler(0f, _yaw, 0f);
+            _rb.MoveRotation(targetRot);
             if (_climbingSystem &&
                 (_climbingSystem.state == FpsPlayerClimbing.PlayerState.Climbing ||
                  _climbingSystem.state == FpsPlayerClimbing.PlayerState.NoStaminaFalling))
@@ -176,7 +173,12 @@ namespace Game.Player.Movement.Ground
 
             //Не уверен что необходимо, нужны тесты
             //_rb.linearDamping = isGrounded ? groundDrag : 0f;
-
+            // Jump immediate
+            if (_jumpPressed && isGrounded &&
+                (_climbingSystem == null || _climbingSystem.state == FpsPlayerClimbing.PlayerState.Walking))
+            {
+                Jump();
+            }
             var wishDir = (transform.forward * _inputMove.y + transform.right * _inputMove.x);
             if (wishDir.sqrMagnitude > 1f) wishDir.Normalize();
 

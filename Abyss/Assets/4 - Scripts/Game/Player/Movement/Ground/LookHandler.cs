@@ -31,7 +31,6 @@ namespace Game.Player.Movement.Ground
             }
             else
             {
-                if (_body) _body.rotation = Quaternion.Euler(0f, yaw, 0f);
                 if (_cam) _cam.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
             }
         }
