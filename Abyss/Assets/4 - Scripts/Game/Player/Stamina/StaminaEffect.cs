@@ -17,15 +17,25 @@ namespace Game.Player.Stamina
 
         /// <summary>Если AllowMultipleSources == false и RefreshExisting==true, то при Apply существующий источник будет рефрешнут.</summary>
         public virtual bool DefaultRefreshExisting => false;
+
         /// <summary>
         ///  Просто config для decay если эффект исчезает
         /// </summary>
         private DecaySourceConfig _decayCfg;
         private readonly DecaySource _decay = new DecaySource();
+
         // Хуки
-        protected virtual void OnStacksAdded(PlayerStamina playerStamina, int amount) { }
-        protected virtual void OnStacksRemoved(PlayerStamina playerStamina, int amount) { }
-        protected virtual void OnExpired(PlayerStamina playerStamina) { }
+        protected virtual void OnStacksAdded(PlayerStamina playerStamina, int amount)
+        {
+        }
+
+        protected virtual void OnStacksRemoved(PlayerStamina playerStamina, int amount)
+        {
+        }
+
+        protected virtual void OnExpired(PlayerStamina playerStamina)
+        {
+        }
 
         /// <summary>
         /// Добавление источника (внешний код не должен напрямую модифицировать Sources, используйте AddSource либо PlayerStamina.ApplyEffect)
@@ -83,6 +93,7 @@ namespace Game.Player.Stamina
         {
             return 0f;
         }
+
         /// <summary>
         /// decay. 
         /// Вызывать только если Sources.Count == 0.
@@ -110,10 +121,12 @@ namespace Game.Player.Stamina
                 return RemoveStacksInternal(owner, toRemove);
             }
         }
+
         public void ConfigureDecay(DecaySourceConfig cfg)
         {
             _decayCfg = cfg;
         }
+
         public void InitializeDecay()
         {
             if (_decayCfg != null)
