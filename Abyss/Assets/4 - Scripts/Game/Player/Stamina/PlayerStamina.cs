@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Mechanics.Effects;
 using Game.Player.Stamina.Effects;
-using Unity.Multiplayer.Center.NetcodeForGameObjectsExample;
+using Services.Effects;
 using UnityEngine;
 
 namespace Game.Player.Stamina
@@ -25,6 +25,7 @@ namespace Game.Player.Stamina
         private readonly Stack<EffectSource> _sourcePool = new(64);
 
         public float DefaultRecoveryRate => defaultRecoveryRate;
+        public IEnumerable<StaminaEffect> ActiveEffects => _activeEffects.Values;
 
         private void Start()
         {
@@ -41,6 +42,7 @@ namespace Game.Player.Stamina
             _currentRecoveryRate = Mathf.Max(0f, _currentRecoveryRate);
 
             var totalMax = GetTotalMax();
+
             if (_currentStamina < totalMax)
             {
                 _currentStamina += _currentRecoveryRate * dt;
@@ -108,17 +110,18 @@ namespace Game.Player.Stamina
                         }
                     }
                 }
+
                 if (effect.Sources.Count == 0)
                 {
                     Debug.Log("Updated Decay");
-                    effect.UpdateDecay(this,dt);
+                    effect.UpdateDecay(this, dt);
+
                     if (effect.Stacks <= 0)
                     {
                         effect.Expire(this);
                         typesToRemove.Add(type);
                     }
                 }
-                
             }
 
             // чистка завершённых эффектов
@@ -214,6 +217,7 @@ namespace Game.Player.Stamina
                 Debug.LogWarning($"ApplyEffect: registered type {effType.FullName} does not inherit StaminaEffect.");
                 return null;
             }
+
             if (!_activeEffects.TryGetValue(effType, out var effectObj))
             {
                 StaminaEffect inst = null;
@@ -258,6 +262,7 @@ namespace Game.Player.Stamina
                     }
                 }
             }
+
             var newSource = GetSourceFromPool();
             newSource.Init(cfg);
 
@@ -267,6 +272,7 @@ namespace Game.Player.Stamina
             effect.AddSource(newSource);
             return effect;
         }
+
         public int TryRemoveStacks<T>(int amount) where T : StaminaEffect
         {
             var t = typeof(T);
@@ -346,7 +352,7 @@ namespace Game.Player.Stamina
             // убираем 1 стек
             eff.RemoveStacksInternal(this, 1);
 
-            // если эффект больше пуст (нет стеков и нет источников)  удаляем
+            // если эффект больше пуст (нет стеков и нет источников) удаляем
             if (eff.Stacks == 0 && (eff.Sources == null || eff.Sources.Count == 0))
             {
                 eff.Expire(this);
