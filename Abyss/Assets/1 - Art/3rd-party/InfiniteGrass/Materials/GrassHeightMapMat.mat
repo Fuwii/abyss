@@ -22,8 +22,16 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _GrassMask:
+        m_Texture: {fileID: 2800000, guid: fd816b919a20dd049a3d5c18705cdd7c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
-    m_Floats: []
-    m_Colors: []
+    m_Floats:
+    - _MaskThreshold: 0.5
+    m_Colors:
+    - _MaskTiling: {r: 1, g: 1, b: 0, a: 0}
+    - _MaskWorldScale: {r: 0.1, g: 0.1, b: 0, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
