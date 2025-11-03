@@ -1,13 +1,16 @@
-Shader "InfiniteGrass/GrassHeightMapShader"
+Shader "InfiniteGrass/GrassHeightMapShader_WithMask"
 {
+    //Можно еще убрать логику slope 
     Properties
     {
+        _GrassMask("Grass Mask", 2D) = "white" {}
+        _MaskThreshold("Mask Threshold", Range(0,1)) = 0.5
+        _MaskTiling("Mask Tiling (UV)", Vector) = (1,1,0,0)
+        _MaskWorldScale("Mask World Scale (XZ)", Vector) = (0.1,0.1,0,0)
     }
     SubShader
     {
-        Tags { 
-            "RenderType"="Opaque"
-        }
+        Tags { "RenderType"="Opaque" }
 
         Pass
         {
@@ -17,17 +20,25 @@ Shader "InfiniteGrass/GrassHeightMapShader"
 
             #include "UnityCG.cginc"
 
+            sampler2D _GrassMask;
+            float4 _MaskTiling;
+            float4 _MaskWorldScale;
+            float _MaskThreshold;
+
             struct appdata
             {
                 float4 vertex : POSITION;
                 half4 color : COLOR;
                 float3 normal : NORMAL;
+                float2 uv : TEXCOORD0; 
             };
 
             struct v2f
             {
                 float4 vertex : SV_POSITION;
-                float2 color : TEXCOORD0;
+                float2 color : TEXCOORD0;  
+                float2 maskUV : TEXCOORD1; 
+                float3 worldPos : TEXCOORD2;
             };
 
             float2 _BoundsYMinMax;
@@ -42,7 +53,7 @@ Shader "InfiniteGrass/GrassHeightMapShader"
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
 
-                float3 worldPos = mul(unity_ObjectToWorld, v.vertex);
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 float rChannel = Remap(worldPos.y, _BoundsYMinMax, float2(0, 1));
 
                 float vertexMask = v.color.r;
@@ -55,16 +66,30 @@ Shader "InfiniteGrass/GrassHeightMapShader"
 
                 o.color = float2(rChannel, gChannel);
 
+                float2 maskUV_fromUV = v.uv * _MaskTiling.xy;
+                o.maskUV = maskUV_fromUV;
+
+                o.worldPos = worldPos;
+
                 return o;
             }
+
             float2 frag (v2f i) : SV_Target
             {
-                return i.color;
+                float maskSample = tex2D(_GrassMask, i.maskUV).r;
+
+                float rChannel = i.color.x;
+                float gChannel = i.color.y;
+
+                gChannel = gChannel * smoothstep(_MaskThreshold - 0.05, _MaskThreshold + 0.05, maskSample);
+
+                return float2(rChannel, gChannel);
             }
             ENDCG
         }
     }
 }
+
 ///alt
 //       Shader "InfiniteGrass/GrassHeightMapShader_NoFlicker"
 // {
