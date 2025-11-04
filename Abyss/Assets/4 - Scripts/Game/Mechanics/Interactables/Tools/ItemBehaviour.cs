@@ -22,11 +22,30 @@ namespace Game.Mechanics.Interactables.Tools
         {
             if (data == null) return;
 
-            var instance = new ItemInstance(data);
-            //some inventory logic
-            data.OnPickup(player, instance);
 
-            Destroy(gameObject);
+            var instance = new ItemInstance(data);
+
+
+            var inv = player.GetComponent<PlayerInventory>();
+            if (inv == null)
+            {
+                Debug.LogWarning("Player has no PlayerInventory component");
+                data.OnPickup(player, instance);
+                Destroy(gameObject);
+                return;
+            }
+
+
+            bool ok = inv.TryPickup(instance);
+            if (ok)
+            {
+                data.OnPickup(player, instance);
+                Destroy(gameObject);
+            }
+            else
+            {
+                Debug.Log("Inventory full");
+            }
         }
     }
 }
