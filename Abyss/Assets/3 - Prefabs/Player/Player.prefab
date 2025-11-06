@@ -411,6 +411,8 @@ GameObject:
   - component: {fileID: 77520714226835381}
   - component: {fileID: 8112239056880653029}
   - component: {fileID: 1743474082908498290}
+  - component: {fileID: 5152442653135459793}
+  - component: {fileID: 5829967259299446738}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -782,12 +784,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb8ad6a40182fee4882e322c48dab4ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  handMount: {fileID: 6288585837429596775}
+  handMount: {fileID: 999095877863285171}
   mainSlotsCount: 4
   mainSlots: []
   handItem:
     itemData: {fileID: 0}
     remainingUses: 0
+--- !u!114 &5152442653135459793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2457687564484327083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eebe935f4ad23f941b2cfb6e1bb46f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerCamera: {fileID: 2882213916873877215}
+  interactDistance: 2
+  interactKey: 101
+--- !u!114 &5829967259299446738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2457687564484327083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02855a6f63da04a47a200a9981a1284e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2921874748193461785
 GameObject:
   m_ObjectHideFlags: 0
@@ -1193,7 +1222,6 @@ MonoBehaviour:
   - {fileID: 6795543578551241504}
   - {fileID: 2887626296203924538}
   handIcon: {fileID: 1655322325247640873}
-  backpackButton: {fileID: 0}
   backpackIcon: {fileID: 4277523152860792781}
   backpackSlotButton: {fileID: 0}
 --- !u!1 &7535039285167454058
@@ -4744,6 +4772,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animatedRb: {fileID: 3827556864732808668}
   isSyncing: 1
+--- !u!4 &999095877863285171 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1287871852971126896, guid: 66df67491ad737248a6b36d97c39e299, type: 3}
+  m_PrefabInstance: {fileID: 7204931711383612963}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2038863113690420681 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -20705982525096982, guid: 66df67491ad737248a6b36d97c39e299, type: 3}
@@ -5645,11 +5678,6 @@ MonoBehaviour:
 --- !u!4 &6183293116624027272 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3905315097887215787, guid: 66df67491ad737248a6b36d97c39e299, type: 3}
-  m_PrefabInstance: {fileID: 7204931711383612963}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &6288585837429596775 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3798932211034262596, guid: 66df67491ad737248a6b36d97c39e299, type: 3}
   m_PrefabInstance: {fileID: 7204931711383612963}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &7239455357805447624 stripped

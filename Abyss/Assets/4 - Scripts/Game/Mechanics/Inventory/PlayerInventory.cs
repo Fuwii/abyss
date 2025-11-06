@@ -1,6 +1,7 @@
 using Game.Mechanics.Interactables.Tools;
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
@@ -11,7 +12,7 @@ public class PlayerInventory : MonoBehaviour
     public int mainSlotsCount = 4;
 
 
-    // public events so UI can subscribe
+    // public  UI  events 
     public event Action OnInventoryChanged;
     public event Action OnBackpackChanged;
     public event Action OnHandChanged;
@@ -111,6 +112,29 @@ public class PlayerInventory : MonoBehaviour
         mainSlots[index] = null;
         OnInventoryChanged?.Invoke();
         return it;
+    }
+    public void DropFromMain()
+    {
+
+        if (handItem == null || handItem.itemData == null)
+            return;
+
+        var prefab = handItem.itemData.itemPrefab;
+        if (prefab != null)
+        {
+            var dropPos = transform.position + transform.forward * 1.5f;
+            var dropped = Instantiate(prefab, dropPos, Quaternion.identity);
+            var rb = dropped.AddComponent<Rigidbody>();
+            rb.useGravity = true; 
+            var behaviour = dropped.GetComponent<ItemBehaviour>();
+            if (behaviour != null)
+                behaviour.data = handItem.itemData;
+        }
+
+        ClearHandVisual();
+        handItem = null;
+        OnInventoryChanged?.Invoke();
+        OnHandChanged?.Invoke();
     }
 
 
