@@ -14,7 +14,8 @@ namespace Game.Player.Input
         public static event Action OnLeftClickCanceled;
 
         public static event Action<int> OnSlotPressed;
-        public static event Action OnDropPressed;
+        public static event Action OnDropStarted;
+        public static event Action OnDropCanceled;
         public static event Action OnBackpackPressed;
 
         private PlayerInputActions _actions;
@@ -44,7 +45,8 @@ namespace Game.Player.Input
             _actions.Player.Slot3.performed += ctx => OnSlotPressed?.Invoke(2);
             _actions.Player.Slot4.performed += ctx => OnSlotPressed?.Invoke(3);
             _actions.Player.Slot5.performed += ctx => OnSlotPressed?.Invoke(4);
-            _actions.Player.Drop.performed += ctx => OnDropPressed?.Invoke();
+            _actions.Player.Drop.started += ctx => OnDropStarted?.Invoke();
+            _actions.Player.Drop.canceled += ctx => OnDropCanceled?.Invoke();
         }
 
         private void OnDisable()

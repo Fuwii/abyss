@@ -5,7 +5,9 @@ using Game.Player.Input;
 public class InventoryInputHandler : MonoBehaviour
 {
     private PlayerInventory inv;
-
+    private float dropStartTime;
+    private bool dropHeld;
+    private float maxDropForce = 2f;
     private void Awake()
     {
         inv = GetComponent<PlayerInventory>();
@@ -14,14 +16,16 @@ public class InventoryInputHandler : MonoBehaviour
     private void OnEnable()
     {
         InputManager.OnSlotPressed += HandleSlotPressed;
-        InputManager.OnDropPressed += HandleDropPressed;
         InputManager.OnLeftClickStarted += HandleLeftClick;
+        InputManager.OnDropStarted += OnDropStarted;
+        InputManager.OnDropCanceled += OnDropCanceled;
     }
 
     private void OnDisable()
     {
         InputManager.OnSlotPressed -= HandleSlotPressed;
-        InputManager.OnDropPressed -= HandleDropPressed;
+        InputManager.OnDropStarted -= OnDropStarted;
+        InputManager.OnDropCanceled -= OnDropCanceled;
         InputManager.OnLeftClickStarted -= HandleLeftClick;
     }
 
@@ -47,9 +51,22 @@ public class InventoryInputHandler : MonoBehaviour
     {
         inv.UseHand(gameObject);
     }
-
-    private void HandleDropPressed()
+    private void OnDropStarted()
     {
-        inv.DropFromMain(); 
+        dropHeld = true;
+        dropStartTime = Time.time;
+    }
+
+    private void OnDropCanceled()
+    {
+        if (!dropHeld) return;
+        dropHeld = false;
+        if (dropStartTime < 0f)
+            return;
+
+        float dropHoldTime = Time.time - dropStartTime;
+        dropStartTime = -1f;
+        float clampedForce = Mathf.Clamp(dropHoldTime, 0.1f,maxDropForce);
+        inv.DropFromMain(clampedForce);
     }
 }

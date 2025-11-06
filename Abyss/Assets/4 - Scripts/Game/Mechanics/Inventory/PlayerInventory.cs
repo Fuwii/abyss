@@ -74,8 +74,6 @@ public class PlayerInventory : MonoBehaviour
             return true;
         }
 
-
-        // try to put into first empty main slot
         for (int i = 0; i < mainSlots.Count; i++)
         {
             if (mainSlots[i] == null)
@@ -113,7 +111,7 @@ public class PlayerInventory : MonoBehaviour
         OnInventoryChanged?.Invoke();
         return it;
     }
-    public void DropFromMain()
+    public void DropFromMain(float force)
     {
 
         if (handItem == null || handItem.itemData == null)
@@ -124,11 +122,16 @@ public class PlayerInventory : MonoBehaviour
         {
             var dropPos = transform.position + transform.forward * 1.5f;
             var dropped = Instantiate(prefab, dropPos, Quaternion.identity);
-            var rb = dropped.AddComponent<Rigidbody>();
+            //Заглушка
+            var rb = dropped.GetComponent<Rigidbody>();
+            if (rb == null)
+                rb = dropped.AddComponent<Rigidbody>();
             rb.useGravity = true; 
             var behaviour = dropped.GetComponent<ItemBehaviour>();
             if (behaviour != null)
                 behaviour.data = handItem.itemData;
+            Debug.Log(force);
+            rb.AddForce(transform.forward * (force), ForceMode.VelocityChange);
         }
 
         ClearHandVisual();
