@@ -40,40 +40,28 @@ public class PlayerInventory : MonoBehaviour
     private void Awake()
     {
         mainSlots = new List<ItemInstance>(mainSlotsCount);
-        for (int i = 0; i < mainSlotsCount; i++) mainSlots.Add(null);
+        for (int i = 0; i < mainSlotsCount; i++)
+            mainSlots.Add(null);
     }
     private void ClearHandVisual()
     {
-        if (handItem != null && handItem.runtimeHeldObject != null)
+        if (handItem?.runtimeHeldObject != null)
         {
             Destroy(handItem.runtimeHeldObject);
             handItem.runtimeHeldObject = null;
         }
     }
-
-
-    private void SpawnHandVisual(ItemInstance inst)
-    {
-        if (inst == null || inst.itemData == null || inst.itemData.itemPrefab == null || handMount == null) return;
-        inst.runtimeHeldObject = Instantiate(inst.itemData.itemPrefab, handMount);
-        inst.runtimeHeldObject.transform.localPosition = Vector3.zero;
-        inst.runtimeHeldObject.transform.localRotation = Quaternion.identity;
-    }
     public bool TryPickup(ItemInstance instance)
     {
         if (instance == null || instance.itemData == null) return false;
 
-
-        // If item is backpack item -> wear it
-        var bdata = instance.itemData as BackpackItemData;
-        if (bdata != null)
+        if (instance.itemData is BackpackItemData bdata)
         {
             WearBackpack(bdata);
             OnInventoryChanged?.Invoke();
             OnBackpackChanged?.Invoke();
             return true;
         }
-
         for (int i = 0; i < mainSlots.Count; i++)
         {
             if (mainSlots[i] == null)
@@ -83,9 +71,6 @@ public class PlayerInventory : MonoBehaviour
                 return true;
             }
         }
-
-
-        // try backpack if worn
         if (backpackWorn)
         {
             for (int i = 0; i < backpackSlots.Count; i++)
@@ -98,48 +83,18 @@ public class PlayerInventory : MonoBehaviour
                 }
             }
         }
-
-
-        // inventory full
         return false;
     }
-    public ItemInstance DropFromMain(int index)
+    public void DropFromHand(float force)
     {
-        if (index < 0 || index >= mainSlots.Count) return null;
-        var it = mainSlots[index];
-        mainSlots[index] = null;
-        OnInventoryChanged?.Invoke();
-        return it;
-    }
-    public void DropFromMain(float force)
-    {
-
         if (handItem == null || handItem.itemData == null)
             return;
-
-        var prefab = handItem.itemData.itemPrefab;
-        if (prefab != null)
-        {
-            var dropPos = transform.position + transform.forward * 1.5f;
-            var dropped = Instantiate(prefab, dropPos, Quaternion.identity);
-            //Заглушка
-            var rb = dropped.GetComponent<Rigidbody>();
-            if (rb == null)
-                rb = dropped.AddComponent<Rigidbody>();
-            rb.useGravity = true; 
-            var behaviour = dropped.GetComponent<ItemBehaviour>();
-            if (behaviour != null)
-                behaviour.data = handItem.itemData;
-            Debug.Log(force);
-            rb.AddForce(transform.forward * (force), ForceMode.VelocityChange);
-        }
-
+        ItemSystem.Instance.HandleDropped(gameObject, handItem,force);
         ClearHandVisual();
         handItem = null;
         OnInventoryChanged?.Invoke();
         OnHandChanged?.Invoke();
     }
-
 
     // Drop from backpack
     public ItemInstance DropFromBackpack(int index)
@@ -151,84 +106,78 @@ public class PlayerInventory : MonoBehaviour
         OnBackpackChanged?.Invoke();
         return it;
     }
+
     public bool EquipMainToHand(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= mainSlots.Count) return false;
-        if (mainSlots[slotIndex] == null) return false;
-
-
-        if (handItem != null)
+        var slotItem = mainSlots[slotIndex];
+        if (slotItem == null && handItem == null) return false;
+        if (handItem == null)
         {
-            // swap
-            ClearHandVisual();
-            var old = handItem;
-            handItem = mainSlots[slotIndex];
-            ClearHandVisual();
-            SpawnHandVisual(handItem);
-            mainSlots[slotIndex] = old;
-        }
-        else
-        {
-            handItem = mainSlots[slotIndex];
+            if (slotItem == null) return false;
+            handItem = slotItem;
             mainSlots[slotIndex] = null;
-            ClearHandVisual();
-            SpawnHandVisual(handItem);
+            ItemSystem.Instance.HandleSelected(gameObject, handItem, handMount);
+            OnInventoryChanged?.Invoke();
+            OnHandChanged?.Invoke();
+            return true;
         }
-
-
-        OnInventoryChanged?.Invoke();
-        OnHandChanged?.Invoke();
-        return true;
-    }
-    public bool PutHandToFirstFreeMain()
-    {
-        if (handItem == null) return false;
-        for (int i = 0; i < mainSlots.Count; i++)
+        if (handItem != null && slotItem == null)
         {
-            if (mainSlots[i] == null)
-            {
-                mainSlots[i] = handItem;
-                ClearHandVisual();
-                handItem = null;
-                OnInventoryChanged?.Invoke();
-                OnHandChanged?.Invoke();
-                return true;
-            }
+            ItemSystem.Instance.HandleDeselected(gameObject, handItem);
+            mainSlots[slotIndex] = handItem;
+            ClearHandVisual();
+            handItem = null;
+            OnInventoryChanged?.Invoke();
+            OnHandChanged?.Invoke();
+            return true;
+        }
+        if (handItem != null && slotItem != null)
+        {
+            ItemSystem.Instance.HandleDeselected(gameObject, handItem);
+            var oldHand = handItem;
+            handItem = slotItem;
+            mainSlots[slotIndex] = oldHand;
+            ItemSystem.Instance.HandleSelected(gameObject, handItem, handMount);
+
+            OnInventoryChanged?.Invoke();
+            OnHandChanged?.Invoke();
+            return true;
         }
         return false;
     }
     public void UseHand(GameObject player)
     {
-        if (handItem == null || handItem.itemData == null) return;
-        handItem.itemData.OnUse(player, handItem);
-        handItem.UseOne();
+        if (handItem == null || handItem.itemData == null)
+            return;
+
+        ItemSystem.Instance.HandleUse(player, handItem);
+
         if (handItem.IsBroken)
         {
             ClearHandVisual();
             handItem = null;
         }
+
         OnHandChanged?.Invoke();
     }
+
     public void WearBackpack(BackpackItemData data)
     {
         if (data == null) return;
         backpackData = data;
         backpackSlots = new List<ItemInstance>(data.capacity);
-        for (int i = 0; i < data.capacity; i++) backpackSlots.Add(null);
-
+        for (int i = 0; i < data.capacity; i++)
+            backpackSlots.Add(null);
     }
     public List<ItemInstance> RemoveBackpack()
     {
         var leftover = new List<ItemInstance>();
         if (!backpackWorn) return leftover;
 
-
-        // try move items into main first
-        for (int i = 0; i < backpackSlots.Count; i++)
+        foreach (var it in backpackSlots)
         {
-            var it = backpackSlots[i];
             if (it == null) continue;
-
 
             bool placed = false;
             for (int j = 0; j < mainSlots.Count; j++)
@@ -241,10 +190,9 @@ public class PlayerInventory : MonoBehaviour
                 }
             }
 
-
-            if (!placed) leftover.Add(it);
+            if (!placed)
+                leftover.Add(it);
         }
-
 
         backpackData = null;
         backpackSlots = null;

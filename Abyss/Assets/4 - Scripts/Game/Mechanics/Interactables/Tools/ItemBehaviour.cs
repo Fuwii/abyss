@@ -30,8 +30,6 @@ namespace Game.Mechanics.Interactables.Tools
             if (inv == null)
             {
                 Debug.LogWarning("Player has no PlayerInventory component");
-                data.OnPickup(player, instance);
-                Destroy(gameObject);
                 return;
             }
 
@@ -39,7 +37,9 @@ namespace Game.Mechanics.Interactables.Tools
             bool ok = inv.TryPickup(instance);
             if (ok)
             {
-                data.OnPickup(player, instance);
+                Debug.Log("Picked");
+                Debug.Log(ItemSystem.Instance);
+                ItemSystem.Instance.HandlePickup(player, instance);
                 Destroy(gameObject);
             }
             else

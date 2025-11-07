@@ -67,6 +67,6 @@ public class InventoryInputHandler : MonoBehaviour
         float dropHoldTime = Time.time - dropStartTime;
         dropStartTime = -1f;
         float clampedForce = Mathf.Clamp(dropHoldTime, 0.1f,maxDropForce);
-        inv.DropFromMain(clampedForce);
+        inv.DropFromHand(clampedForce);
     }
 }
