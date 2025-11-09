@@ -19,8 +19,8 @@ namespace IdyllicFantasyNature
         private void Start()
         {
             // locks cursor and makes it invisible
-            Cursor.lockState = Cursor.lockState;
-            Cursor.visible = false;
+            //Cursor.lockState = Cursor.lockState;
+           // Cursor.visible = false;
         }
 
         // Update is called once per frame

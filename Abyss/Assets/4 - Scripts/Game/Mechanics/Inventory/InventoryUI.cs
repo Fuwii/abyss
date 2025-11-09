@@ -6,83 +6,117 @@ public class InventoryUI : MonoBehaviour
     public PlayerInventory playerInventory;
 
     [Header("Quick Slots (1-4)")]
-    public Image[] slotIcons; 
+    public ItemSlotUI[] slotUIs;       
 
     [Header("Item In Hand UI")]
-    public Image handIcon;
+    public ItemSlotUI handSlot;       
 
     [Header("Backpack Slot UI")]
     public Image backpackIcon;
     public Button backpackSlotButton;
 
-    void Start()
+    private void Start()
     {
         if (playerInventory == null)
         {
-            Debug.LogError("PlayerInventory not assigned to UI");
+            Debug.LogError("InventoryUI: PlayerInventory not assigned and none found in scene.");
+            enabled = false;
             return;
+            
+        }
+        if (slotUIs != null)
+        {
+            for (int i = 0; i < slotUIs.Length; i++)
+            {
+                var slot = slotUIs[i];
+                if (slot != null)
+                    slot.Setup(playerInventory, i, false);
+            }
+        }
+        if (handSlot != null)
+        {
         }
 
         playerInventory.OnInventoryChanged += RefreshSlots;
-        playerInventory.OnHandChanged += RefreshHand;
         playerInventory.OnBackpackChanged += RefreshBackpack;
+        playerInventory.OnHandChanged += RefreshHand;
 
         RefreshSlots();
         RefreshHand();
         RefreshBackpack();
     }
 
-    void RefreshSlots()
+    private void OnDestroy()
     {
-        for (int i = 0; i < slotIcons.Length; i++)
+        if (playerInventory != null)
         {
-            var inst = playerInventory.GetMainSlot(i);
+            playerInventory.OnInventoryChanged -= RefreshSlots;
+            playerInventory.OnBackpackChanged -= RefreshBackpack;
+            playerInventory.OnHandChanged -= RefreshHand;
+        }
+    }
+    public void RefreshSlots()
+    {
+        if (slotUIs == null) return;
+        for (int i = 0; i < slotUIs.Length; i++)
+        {
+            var slot = slotUIs[i];
+            if (slot == null) continue;
 
-            if (inst != null && inst.itemData != null)
-            {
-                slotIcons[i].sprite = inst.itemData.icon;
-                slotIcons[i].enabled = true;
-            }
-            else
-            {
-                slotIcons[i].sprite = null;
-                slotIcons[i].enabled = false;
-            }
+            if (slot == handSlot) continue;
+
+            slot.Refresh();
         }
     }
 
-    void RefreshHand()
+    public void RefreshHand()
     {
+        if (handSlot == null) return;
+        Debug.Log("hand changed");
         var h = playerInventory.handItem;
-
-        if (h != null && h.itemData != null)
+        if (h != null && h.itemData != null && h.itemData.icon != null)
         {
-            handIcon.sprite = h.itemData.icon;
-            handIcon.enabled = true;
+            if (handSlot.icon != null)
+            {
+                handSlot.icon.sprite = h.itemData.icon;
+                handSlot.icon.enabled = true;
+            }
         }
         else
         {
-            handIcon.sprite = null;
-            handIcon.enabled = false;
+            if (handSlot.icon != null)
+            {
+                handSlot.icon.sprite = null;
+                handSlot.icon.enabled = false;
+            }
         }
     }
 
-
-    void RefreshBackpack()
+    public void RefreshBackpack()
     {
         var bp = playerInventory.backpackItem;
 
         if (bp != null)
         {
-            backpackIcon.sprite = bp.icon;
-            backpackIcon.enabled = true;
-            backpackSlotButton.interactable = true;
+            if (backpackIcon != null)
+            {
+                backpackIcon.sprite = bp.icon;
+                backpackIcon.enabled = true;
+            }
+
+            if (backpackSlotButton != null)
+                backpackSlotButton.interactable = true;
         }
         else
         {
-            backpackIcon.sprite = null;
-            backpackIcon.enabled = false;
-            backpackSlotButton.interactable = false;
+            if (backpackIcon != null)
+            {
+                backpackIcon.sprite = null;
+                backpackIcon.enabled = false;
+            }
+
+            if (backpackSlotButton != null)
+                backpackSlotButton.interactable = false;
         }
     }
 }

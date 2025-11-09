@@ -19,10 +19,12 @@ public class PlayerInventory : MonoBehaviour
 
 
     // main slots
+    [SerializeField]
     public List<ItemInstance> mainSlots;
 
 
     // hand (single)
+    [SerializeField]
     public ItemInstance handItem;
     // backpack
     public bool backpackWorn => backpackData != null;
@@ -64,24 +66,20 @@ public class PlayerInventory : MonoBehaviour
         }
         for (int i = 0; i < mainSlots.Count; i++)
         {
-            if (mainSlots[i] == null)
+            if (mainSlots[i] == null || mainSlots[i].itemData == null)
             {
                 mainSlots[i] = instance;
                 OnInventoryChanged?.Invoke();
                 return true;
             }
         }
-        if (backpackWorn)
+        if (handItem==null || handItem.itemData==null)
         {
-            for (int i = 0; i < backpackSlots.Count; i++)
-            {
-                if (backpackSlots[i] == null)
-                {
-                    backpackSlots[i] = instance;
-                    OnBackpackChanged?.Invoke();
-                    return true;
-                }
-            }
+            handItem = instance;
+            OnInventoryChanged?.Invoke();
+            OnHandChanged?.Invoke();
+            ItemSystem.Instance.HandleSelected(gameObject, handItem, handMount);
+            return true;
         }
         return false;
     }
@@ -95,7 +93,44 @@ public class PlayerInventory : MonoBehaviour
         OnInventoryChanged?.Invoke();
         OnHandChanged?.Invoke();
     }
+    public ItemInstance RemoveFromMain(int index)
+    {
+        if (index < 0 || index >= mainSlots.Count) return null;
+        var it = mainSlots[index];
+        mainSlots[index] = null;
+        OnInventoryChanged?.Invoke();
+        return it;
+    }
 
+    public bool TryPutIntoMain(int index, ItemInstance item)
+    {
+        if (index < 0 || index >= mainSlots.Count) return false;
+        if (mainSlots[index] != null) return false;
+        mainSlots[index] = item;
+        OnInventoryChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryPutIntoBackpack(int index, ItemInstance item)
+    {
+        if (!backpackWorn) return false;
+        if (index < 0 || index >= backpackSlots.Count) return false;
+        if (backpackSlots[index] != null) return false;
+        backpackSlots[index] = item;
+        OnBackpackChanged?.Invoke();
+        return true;
+    }
+
+    public bool SwapBackpackSlots(int a, int b)
+    {
+        if (!backpackWorn) return false;
+        if (a < 0 || a >= backpackSlots.Count || b < 0 || b >= backpackSlots.Count) return false;
+        var tmp = backpackSlots[a];
+        backpackSlots[a] = backpackSlots[b];
+        backpackSlots[b] = tmp;
+        OnBackpackChanged?.Invoke();
+        return true;
+    }
     // Drop from backpack
     public ItemInstance DropFromBackpack(int index)
     {
@@ -122,18 +157,20 @@ public class PlayerInventory : MonoBehaviour
             OnHandChanged?.Invoke();
             return true;
         }
-        if (handItem != null && slotItem == null)
+        if (handItem != null && slotItem == null || slotItem.itemData == null)
         {
             ItemSystem.Instance.HandleDeselected(gameObject, handItem);
             mainSlots[slotIndex] = handItem;
             ClearHandVisual();
             handItem = null;
+            Debug.Log("handitem setted null"+ handItem);
             OnInventoryChanged?.Invoke();
             OnHandChanged?.Invoke();
             return true;
         }
-        if (handItem != null && slotItem != null)
+        if (handItem != null && slotItem != null || slotItem.itemData != null)
         {
+            Debug.Log("bug");
             ItemSystem.Instance.HandleDeselected(gameObject, handItem);
             var oldHand = handItem;
             handItem = slotItem;

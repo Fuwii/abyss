@@ -68,9 +68,6 @@ namespace Game.Player.Movement.Ground
 
             if (!playerCamera) playerCamera = GetComponentInChildren<Camera>();
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-
             _yaw = transform.eulerAngles.y;
             _pitch = playerCamera ? playerCamera.transform.localEulerAngles.x : 0f;
 
