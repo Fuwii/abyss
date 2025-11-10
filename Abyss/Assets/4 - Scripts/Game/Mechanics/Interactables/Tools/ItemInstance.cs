@@ -20,6 +20,10 @@ namespace Game.Mechanics.Interactables.Tools
         {
             itemData = data;
             remainingUses = data != null ? data.uses : 0;
+            if (data is BackpackItemData bpData)
+            {
+                AddComponent(new BackpackComponent(bpData.capacity));
+            }
         }
 
         public T GetComponent<T>() where T : class, IItemComponent

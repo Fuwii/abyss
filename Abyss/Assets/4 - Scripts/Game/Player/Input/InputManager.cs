@@ -40,11 +40,11 @@ namespace Game.Player.Input
             _actions.Player.LeftClick.started += ctx => OnLeftClickStarted?.Invoke();
             _actions.Player.LeftClick.canceled += ctx => OnLeftClickCanceled?.Invoke();
             //inventory
-            _actions.Player.Slot1.performed += ctx => OnSlotPressed?.Invoke(0);
-            _actions.Player.Slot2.performed += ctx => OnSlotPressed?.Invoke(1);
-            _actions.Player.Slot3.performed += ctx => OnSlotPressed?.Invoke(2);
-            _actions.Player.Slot4.performed += ctx => OnSlotPressed?.Invoke(3);
-            _actions.Player.Slot5.performed += ctx => OnSlotPressed?.Invoke(4);
+            _actions.Player.Slot1.performed += ctx => OnSlotPressed?.Invoke(1);
+            _actions.Player.Slot2.performed += ctx => OnSlotPressed?.Invoke(2);
+            _actions.Player.Slot3.performed += ctx => OnSlotPressed?.Invoke(3);
+            _actions.Player.Slot4.performed += ctx => OnSlotPressed?.Invoke(4);
+            _actions.Player.Slot5.performed += ctx => OnSlotPressed?.Invoke(5);
             _actions.Player.Drop.started += ctx => OnDropStarted?.Invoke();
             _actions.Player.Drop.canceled += ctx => OnDropCanceled?.Invoke();
         }

@@ -59,8 +59,10 @@ public class ItemHandler : IItemHandler
 
         var behaviour = dropped.GetComponent<ItemBehaviour>();
         if (behaviour != null)
+        {
             behaviour.data = instance.itemData;
-
+            behaviour.itemInstance = instance;
+        }
         if (instance.runtimeHeldObject != null)
         {
             Object.Destroy(instance.runtimeHeldObject);

@@ -6,8 +6,8 @@ public class BackpackUI : MonoBehaviour
 {
     [Header("References")]
     public PlayerInventory playerInventory;
-    public Transform slotContainer;       
-    public GameObject slotPrefab;         
+    public Transform slotContainer;
+    public GameObject slotPrefab;
 
     private List<ItemSlotUI> slotUIs = new();
 
@@ -27,8 +27,11 @@ public class BackpackUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        playerInventory.OnBackpackChanged -= RefreshBackpack;
-        playerInventory.OnInventoryChanged -= RefreshBackpack;
+        if (playerInventory != null)
+        {
+            playerInventory.OnBackpackChanged -= RefreshBackpack;
+            playerInventory.OnInventoryChanged -= RefreshBackpack;
+        }
     }
 
     private void ClearSlots()
@@ -49,7 +52,7 @@ public class BackpackUI : MonoBehaviour
         var grid = slotContainer.GetComponent<GridLayoutGroup>();
         if (grid != null)
         {
-            int columns = Mathf.CeilToInt(Mathf.Sqrt(capacity)); 
+            int columns = Mathf.CeilToInt(Mathf.Sqrt(capacity));
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = columns;
         }
@@ -58,7 +61,7 @@ public class BackpackUI : MonoBehaviour
         {
             var slotGO = Instantiate(slotPrefab, slotContainer);
             var slotUI = slotGO.GetComponent<ItemSlotUI>();
-            slotUI.Setup(playerInventory, i, isBackpack: true);
+            slotUI.Setup(playerInventory, i, true);
             slotUIs.Add(slotUI);
         }
     }

@@ -8,6 +8,7 @@ public class InventoryInputHandler : MonoBehaviour
     private float dropStartTime;
     private bool dropHeld;
     private float maxDropForce = 2f;
+
     private void Awake()
     {
         inv = GetComponent<PlayerInventory>();
@@ -31,26 +32,14 @@ public class InventoryInputHandler : MonoBehaviour
 
     private void HandleSlotPressed(int slotIndex)
     {
-        if (slotIndex >= 0 && slotIndex <= 3)
-        {
-            inv.EquipMainToHand(slotIndex); 
-        }
-        else if (slotIndex == 4)
-        {
-            if (inv.backpackWorn)
-            {
-            }
-            else
-            {
-                
-            }
-        }
+        inv.SetSelectedSlot(slotIndex);
     }
 
     private void HandleLeftClick()
     {
-        inv.UseHand(gameObject);
+        inv.UseSelected(gameObject);
     }
+
     private void OnDropStarted()
     {
         dropHeld = true;
@@ -66,7 +55,7 @@ public class InventoryInputHandler : MonoBehaviour
 
         float dropHoldTime = Time.time - dropStartTime;
         dropStartTime = -1f;
-        float clampedForce = Mathf.Clamp(dropHoldTime, 0.1f,maxDropForce);
-        inv.DropFromHand(clampedForce);
+        float clampedForce = Mathf.Clamp(dropHoldTime, 0.1f, maxDropForce);
+        inv.DropSelected(clampedForce);
     }
 }

@@ -7,10 +7,10 @@ public class InventoryUI : MonoBehaviour
     public PlayerInventory playerInventory;
 
     [Header("Quick Slots (1-4)")]
-    public ItemSlotUI[] slotUIs;       
+    public ItemSlotUI[] slotUIs;
 
     [Header("Item In Hand UI")]
-    public ItemSlotUI handSlot;       
+    public ItemSlotUI handSlot;
 
     [Header("Backpack Slot UI")]
     public Image backpackIcon;
@@ -23,20 +23,23 @@ public class InventoryUI : MonoBehaviour
             Debug.LogError("InventoryUI: PlayerInventory not assigned and none found in scene.");
             enabled = false;
             return;
-            
         }
+
         if (slotUIs != null)
         {
             for (int i = 0; i < slotUIs.Length; i++)
             {
                 var slot = slotUIs[i];
                 if (slot != null)
-                    slot.Setup(playerInventory, i, false);
+                {
+                    // quick slots map to inventorySlots 1..N
+                    slot.Setup(playerInventory, i + 1, false);
+                }
             }
         }
+
         if (handSlot != null)
-        {
-        }
+            handSlot.Setup(playerInventory, 0, false);
 
         playerInventory.OnInventoryChanged += RefreshSlots;
         playerInventory.OnBackpackChanged += RefreshBackpack;
@@ -56,6 +59,7 @@ public class InventoryUI : MonoBehaviour
             playerInventory.OnHandChanged -= RefreshHand;
         }
     }
+
     public void RefreshSlots()
     {
         if (slotUIs == null) return;
@@ -63,17 +67,15 @@ public class InventoryUI : MonoBehaviour
         {
             var slot = slotUIs[i];
             if (slot == null) continue;
-
             if (slot == handSlot) continue;
-
             slot.Refresh();
         }
     }
 
     public void RefreshHand()
     {
-        if (handSlot == null) return;
-        var h = playerInventory.handItem;
+        if (handSlot == null || playerInventory == null) return;
+        var h = playerInventory.GetSlot(0);
         if (h != null && h.itemData != null && h.itemData.icon != null)
         {
             if (handSlot.icon != null)
@@ -94,8 +96,8 @@ public class InventoryUI : MonoBehaviour
 
     public void RefreshBackpack()
     {
-        ItemInstance bp = null;
-        bp = playerInventory.GetBackpackSlotItem();
+        int bpIndex = playerInventory.mainSlotsCount + 1;
+        ItemInstance bp = playerInventory.GetSlot(bpIndex);
 
         if (bp != null && bp.itemData != null)
         {
