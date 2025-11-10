@@ -1,3 +1,4 @@
+using Game.Mechanics.Interactables.Tools;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -72,7 +73,6 @@ public class InventoryUI : MonoBehaviour
     public void RefreshHand()
     {
         if (handSlot == null) return;
-        Debug.Log("hand changed");
         var h = playerInventory.handItem;
         if (h != null && h.itemData != null && h.itemData.icon != null)
         {
@@ -94,14 +94,15 @@ public class InventoryUI : MonoBehaviour
 
     public void RefreshBackpack()
     {
-        var bp = playerInventory.backpackItem;
+        ItemInstance bp = null;
+        bp = playerInventory.GetBackpackSlotItem();
 
-        if (bp != null)
+        if (bp != null && bp.itemData != null)
         {
             if (backpackIcon != null)
             {
-                backpackIcon.sprite = bp.icon;
-                backpackIcon.enabled = true;
+                backpackIcon.sprite = bp.itemData.icon;
+                backpackIcon.enabled = bp.itemData.icon != null;
             }
 
             if (backpackSlotButton != null)

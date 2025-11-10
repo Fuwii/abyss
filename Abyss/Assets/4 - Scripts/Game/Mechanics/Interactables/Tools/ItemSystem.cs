@@ -15,6 +15,7 @@ public class ItemSystem : Singleton<ItemSystem>
         RegisterHandler(typeof(ItemData), new ItemHandler());
         RegisterHandler(typeof(WeaponData), new WeaponHandler());
         RegisterHandler(typeof(ConsumableData), new ConsumableHandler());
+        RegisterHandler(typeof(BackpackItemData), new BackpackHandler());
     }
 
     public void RegisterHandler(Type dataType, ItemHandler handler)

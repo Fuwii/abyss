@@ -21,4 +21,4 @@ MonoBehaviour:
   uses: 0
   itemPrefab: {fileID: 0}
   category: 0
-  capacity: 4
+  capacity: 9

@@ -18,7 +18,7 @@ MonoBehaviour:
   weight: 1
   price: 1
   rarity: 0
-  uses: 0
+  uses: 1
   itemPrefab: {fileID: 808434983981790816, guid: e2d7ea7422987f14197d8befa41911ab, type: 3}
   category: 1
   restoreStamina: 10

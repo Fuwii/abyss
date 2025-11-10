@@ -3,30 +3,22 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using Game.Mechanics.Interactables.Tools;
 
-/// <summary>
-/// Универсальный UI слот (может быть как для main, так и для backpack).
-/// Скрипт должен висеть на GameObject слота (обычно на Button).
-/// Icon — дочерний Image, куда рисуется спрайт предмета.
-/// Метод Setup(...) вызывается при создании слота из BackpackUI/InventoryUI.
-/// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
     [Header("References")]
-    public Image icon;          // перетащить сюда дочерний Image
-    public PlayerInventory inventory; // может быть установлен через Setup или вручную в инспекторе
+    public Image icon;
+    public PlayerInventory inventory;
 
     [Header("Slot config")]
     public int slotIndex = 0;
     public bool isBackpack = false;
 
-    // runtime
     private Canvas rootCanvas;
     private RectTransform canvasRect;
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
 
-    // drag state
     private GameObject dragIcon;
     private ItemSlotUI dragSourceSlot;
 
@@ -35,21 +27,14 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
-
-        // ищем Canvas наверху
         rootCanvas = GetComponentInParent<Canvas>();
-        if (rootCanvas != null)
-            canvasRect = rootCanvas.GetComponent<RectTransform>();
-
-        // получим/создадим CanvasGroup — это безопасно
+        if (rootCanvas != null) canvasRect = rootCanvas.GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
     }
 
     private void Start()
     {
-        // Если inventory уже задан (через инспектор или Setup), подпишемся
         TrySubscribeInventory();
         Refresh();
     }
@@ -57,14 +42,9 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     private void OnDestroy()
     {
         UnsubscribeInventory();
-        if (dragIcon != null)
-            Destroy(dragIcon);
+        if (dragIcon != null) Destroy(dragIcon);
     }
 
-    /// <summary>
-    /// Вызывается внешним кодом (BackpackUI, InventoryUI) сразу после Instantiate(slotPrefab).
-    /// Настраивает слот на нужный inventory/index/type и подписывает на обновления.
-    /// </summary>
     public void Setup(PlayerInventory inv, int index, bool isBackpack)
     {
         inventory = inv;
@@ -95,9 +75,6 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
         }
     }
 
-    /// <summary>
-    /// Вызывай чтобы обновить визуал слота.
-    /// </summary>
     public void Refresh()
     {
         if (inventory == null || icon == null)
@@ -106,7 +83,8 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
             return;
         }
 
-        ItemInstance inst = isBackpack ? inventory.GetBackpackSlot(slotIndex) : inventory.GetMainSlot(slotIndex);
+        // Для backpack используем GetBackpackContentsAt, для main — GetMainSlot
+        ItemInstance inst = isBackpack ? inventory.GetBackpackContentsAt(slotIndex) : inventory.GetMainSlot(slotIndex);
         if (inst != null && inst.itemData != null && inst.itemData.icon != null)
         {
             icon.sprite = inst.itemData.icon;
@@ -123,20 +101,17 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        // Не начинаем drag, если слот пустой
         if (inventory == null) return;
-        ItemInstance inst = isBackpack ? inventory.GetBackpackSlot(slotIndex) : inventory.GetMainSlot(slotIndex);
+        ItemInstance inst = isBackpack ? inventory.GetBackpackContentsAt(slotIndex) : inventory.GetMainSlot(slotIndex);
         if (inst == null || inst.itemData == null) return;
 
         dragSourceSlot = this;
-
         if (rootCanvas == null)
         {
             Debug.LogWarning("ItemSlotUI: no Canvas found in parents — cannot start drag.");
             return;
         }
 
-        // создаём drag icon в корне канвы
         dragIcon = new GameObject("DragIcon");
         dragIcon.transform.SetParent(rootCanvas.transform, false);
         dragIcon.transform.SetAsLastSibling();
@@ -147,11 +122,8 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
         var rt = dragIcon.GetComponent<RectTransform>();
         rt.sizeDelta = rectTransform.sizeDelta;
 
-        // затемняем оригинал
-        if (canvasGroup != null)
-            canvasGroup.alpha = 0.6f;
-        if (canvasGroup != null)
-            canvasGroup.blocksRaycasts = false;
+        if (canvasGroup != null) canvasGroup.alpha = 0.6f;
+        if (canvasGroup != null) canvasGroup.blocksRaycasts = false;
 
         UpdateDragPosition(eventData);
     }
@@ -164,8 +136,7 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (dragIcon != null)
-            Destroy(dragIcon);
+        if (dragIcon != null) Destroy(dragIcon);
         dragIcon = null;
 
         if (canvasGroup != null)
@@ -187,7 +158,6 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnDrop(PointerEventData eventData)
     {
-        // Определяем источник: либо через dragSourceSlot, либо через pointerDrag
         ItemSlotUI from = dragSourceSlot;
         if (from == null && eventData.pointerDrag != null)
             from = eventData.pointerDrag.GetComponent<ItemSlotUI>();
@@ -195,19 +165,21 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
         if (from == null || from == this) return;
         if (inventory == null) return;
 
-        // Сценарии:
+        // backpack <-> backpack
         if (isBackpack && from.isBackpack)
         {
             inventory.SwapBackpackSlots(from.slotIndex, slotIndex);
             return;
         }
 
+        // main <- backpack
         if (!isBackpack && from.isBackpack)
         {
             MoveFromBackpackToMain(from.slotIndex, slotIndex);
             return;
         }
 
+        // backpack <- main
         if (isBackpack && !from.isBackpack)
         {
             MoveFromMainToBackpack(from.slotIndex, slotIndex);
@@ -231,7 +203,7 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
         if (!inventory.backpackWorn) return;
         var item = inventory.GetMainSlot(mainIndex);
         if (item == null) return;
-        if (inventory.GetBackpackSlot(backpackIndex) != null) return;
+        if (inventory.GetBackpackContentsAt(backpackIndex) != null) return;
 
         var taken = inventory.RemoveFromMain(mainIndex);
         if (taken != null) inventory.TryPutIntoBackpack(backpackIndex, taken);
@@ -240,7 +212,7 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     private void MoveFromBackpackToMain(int backpackIndex, int mainIndex)
     {
         if (!inventory.backpackWorn) return;
-        var item = inventory.GetBackpackSlot(backpackIndex);
+        var item = inventory.GetBackpackContentsAt(backpackIndex);
         if (item == null) return;
         if (inventory.GetMainSlot(mainIndex) != null) return;
 

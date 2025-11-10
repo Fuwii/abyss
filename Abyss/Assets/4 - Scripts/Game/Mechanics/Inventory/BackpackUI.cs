@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BackpackUI : MonoBehaviour
 {
@@ -45,11 +46,18 @@ public class BackpackUI : MonoBehaviour
             return;
 
         int capacity = playerInventory.GetBackpackSize();
+        var grid = slotContainer.GetComponent<GridLayoutGroup>();
+        if (grid != null)
+        {
+            int columns = Mathf.CeilToInt(Mathf.Sqrt(capacity)); 
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = columns;
+        }
+
         for (int i = 0; i < capacity; i++)
         {
             var slotGO = Instantiate(slotPrefab, slotContainer);
             var slotUI = slotGO.GetComponent<ItemSlotUI>();
-            Debug.Log(slotUI);
             slotUI.Setup(playerInventory, i, isBackpack: true);
             slotUIs.Add(slotUI);
         }
