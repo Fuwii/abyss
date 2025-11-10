@@ -22,3 +22,4 @@ MonoBehaviour:
   itemPrefab: {fileID: 0}
   category: 0
   capacity: 9
+  backpackUIPrefab: {fileID: 2114514600177203232, guid: 17e19c502ee1cd24c82df3f7aed33192, type: 3}

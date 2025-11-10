@@ -5,5 +5,7 @@ using UnityEngine;
 public class BackpackItemData : ItemData
 {
     [Header("Backpack")]
-    public int capacity = 5; 
+    public int capacity = 5;
+    [Header("Backpack UI")]
+    public GameObject backpackUIPrefab;
 }

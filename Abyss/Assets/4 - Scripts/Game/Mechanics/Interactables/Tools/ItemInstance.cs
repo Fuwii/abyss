@@ -22,7 +22,7 @@ namespace Game.Mechanics.Interactables.Tools
             remainingUses = data != null ? data.uses : 0;
             if (data is BackpackItemData bpData)
             {
-                AddComponent(new BackpackComponent(bpData.capacity));
+                AddComponent(new BackpackComponent(bpData.capacity, bpData.backpackUIPrefab));
             }
         }
 
