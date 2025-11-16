@@ -41,6 +41,14 @@ Material:
         m_Texture: {fileID: 2800000, guid: 2d203990fc5b60a4682d88c7a0d9fc3e, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Road:
+        m_Texture: {fileID: 2800000, guid: 4d72249720ad48d4f81aa1e5c0d8c1e5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RoadMask:
+        m_Texture: {fileID: 2800000, guid: fd816b919a20dd049a3d5c18705cdd7c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Rock:
         m_Texture: {fileID: 2800000, guid: f21b3e9febf39264eba5193c1707ad91, type: 3}
         m_Scale: {x: 1, y: 1}
