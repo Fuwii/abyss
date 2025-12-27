@@ -1,9 +1,10 @@
 using Game.Mechanics.Interactables.Tools;
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerInventory : MonoBehaviour
+public class PlayerInventory : NetworkBehaviour
 {
     public Transform handMount;
     public int mainSlotsCount = 4; 
@@ -12,19 +13,151 @@ public class PlayerInventory : MonoBehaviour
     public event Action OnBackpackChanged;
     public event Action OnHandChanged;
 
+    public NetworkList<NetworkItem> netSlots;
     [SerializeField] public List<ItemInstance> inventorySlots;
-    public int selectedSlot = -1;
+    public NetworkVariable<int> netSelectedSlot = new NetworkVariable<int>(-1);
+    public int selectedSlot => netSelectedSlot.Value;
 
     int backpackIndex => mainSlotsCount + 1;
     public bool backpackWorn => inventorySlots != null && inventorySlots.Count > backpackIndex && inventorySlots[backpackIndex] != null;
 
     void Awake()
     {
+        netSlots = new NetworkList<NetworkItem>();
         int total = mainSlotsCount + 2;
         inventorySlots = new List<ItemInstance>(total);
         for (int i = 0; i < total; i++) inventorySlots.Add(null);
     }
+    public override void OnNetworkSpawn()
+    {
+        netSelectedSlot.OnValueChanged += OnSelectedSlotChanged;
 
+        UpdateHandVisual();
+        if (IsServer)
+        {
+            if (netSlots.Count == 0)
+            {
+                int totalSlots = mainSlotsCount + 2;
+                for (int i = 0; i < totalSlots; i++)
+                {
+                    netSlots.Add(new NetworkItem { ItemID = -1, RemainingUses = 0 });
+                }
+            }
+        }
+        netSlots.OnListChanged += OnNetworkListChanged;
+        SyncLocalInventory();
+    }
+    private void OnSelectedSlotChanged(int previousValue, int newValue)
+    {
+        if (previousValue >= 0 && previousValue < inventorySlots.Count)
+        {
+            var oldItem = inventorySlots[previousValue];
+            if (oldItem != null)
+            {
+                ItemSystem.Instance.HandleDeselected(gameObject, oldItem);
+            }
+        }
+        UpdateHandVisual();
+    }
+    private void UpdateHandVisual()
+    {
+        // Сначала всегда тотальная зачистка
+        ClearHandVisual();
+
+        int currentIndex = netSelectedSlot.Value;
+
+        // Если индекс валидный и там есть предмет — рисуем
+        if (currentIndex >= 0 && currentIndex < inventorySlots.Count)
+        {
+            var it = inventorySlots[currentIndex];
+            if (it != null && it.itemData != null)
+            {
+                ItemSystem.Instance.HandleSelected(gameObject, it, handMount);
+            }
+        }
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestPickupServerRpc(NetworkObjectReference itemRef, ServerRpcParams rpcParams = default)
+    {
+        // 1. Пытаемся достать объект из ссылки
+        if (!itemRef.TryGet(out NetworkObject itemNetObj)) return;
+
+        // 2. Достаем компонент предмета
+        var itemBehaviour = itemNetObj.GetComponent<ItemBehaviour>();
+        if (itemBehaviour == null) return;
+
+        short id = itemBehaviour.data.id;
+        int uses = itemBehaviour.itemInstance.remainingUses;
+
+        // 3. ТВОЯ ПЕРЕДЕЛАННАЯ ЛОГИКА TryPickup
+        // Важно: на сервере мы меняем NetworkList (netSlots), 
+        // а клиенты обновят свои inventorySlots автоматически через OnListChanged
+
+        if (itemBehaviour.data is BackpackItemData)
+        {
+            if (netSlots[backpackIndex].ItemID != -1)
+            {
+                // Логика "выбросить старый рюкзак", если нужно...
+            }
+            netSlots[backpackIndex] = new NetworkItem { ItemID = id, RemainingUses = uses };
+            itemNetObj.Despawn(true); // Успех!
+            return;
+        }
+
+        // Ищем пустое место в основных слотах
+        for (int i = 1; i <= mainSlotsCount; i++)
+        {
+            if (netSlots[i].ItemID == -1) // -1 значит пусто
+            {
+                netSlots[i] = new NetworkItem { ItemID = id, RemainingUses = uses };
+                itemNetObj.Despawn(true); // Успех!
+                return;
+            }
+        }
+
+        // Если места нет в слотах, пробуем взять в руки (0 слот)
+        if (netSlots[0].ItemID == -1)
+        {
+            netSlots[0] = new NetworkItem { ItemID = id, RemainingUses = uses };
+            itemNetObj.Despawn(true);
+            return;
+        }
+
+        // Если дошли сюда — инвентарь реально полон, ничего не делаем.
+        Debug.Log("Server: No space for item");
+    }
+    private void OnNetworkListChanged(NetworkListEvent<NetworkItem> changeEvent)
+    {
+        SyncLocalInventory(); // Обновили данные
+
+        // ВИЗУАЛ: Обновляем руку только если изменился Тот Самый слот, который сейчас выбран
+        if (changeEvent.Index == netSelectedSlot.Value)
+        {
+            UpdateHandVisual();
+        }
+        // 3. UI ОБНОВЛЯЕМ ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА
+        if (IsOwner)
+    {
+        OnInventoryChanged?.Invoke();
+        if (changeEvent.Index == 0) OnHandChanged?.Invoke();
+        if (changeEvent.Index == backpackIndex) OnBackpackChanged?.Invoke();
+    }
+}
+    void SyncLocalInventory()
+    {
+        for (int i = 0; i < netSlots.Count; i++)
+        {
+            if (netSlots[i].ItemID == -1)
+            {
+                inventorySlots[i] = null;
+            }
+            else
+            {
+                var data = ItemDatabase.GetItem(netSlots[i].ItemID);
+                inventorySlots[i] = new ItemInstance(data) { remainingUses = netSlots[i].RemainingUses };
+            }
+        }
+    }
     void ClearHandVisual()
     {
         var hand = inventorySlots[0];
@@ -37,36 +170,30 @@ public class PlayerInventory : MonoBehaviour
 
     public void SetSelectedSlot(int index)
     {
-        if (index < 0 || index >= inventorySlots.Count) return;
-        if (selectedSlot == index)
+        if (!IsOwner) return; // Только владелец может нажать на кнопку выбора
+
+        // Вместо прямого изменения вызываем RPC
+        RequestSetSelectedSlotServerRpc(index);
+    }
+    [ServerRpc]
+    private void RequestSetSelectedSlotServerRpc(int index)
+    {
+        if (index == -1)
         {
-            DeselectCurrent();
+            netSelectedSlot.Value = -1;
             return;
         }
 
-        if (index != 0)
-        {
-            var hand = inventorySlots[0];
-            if (hand != null && hand.itemData != null)
-            {
-                ItemSystem.Instance.HandleDropped(gameObject, hand, 0.5f);
-                ClearHandVisual();
-                inventorySlots[0] = null;
-                OnHandChanged?.Invoke();
-                OnInventoryChanged?.Invoke();
-            }
-        }
+        if (index < 0 || index >= netSlots.Count) return;
 
-        DeselectCurrent();
-        var it = inventorySlots[index];
-        if (it == null || it.itemData == null)
+        if (netSelectedSlot.Value == index)
         {
-            selectedSlot = -1;
-            return;
+            netSelectedSlot.Value = -1;
         }
-
-        selectedSlot = index;
-        ItemSystem.Instance.HandleSelected(gameObject, it, handMount);
+        else
+        {
+            netSelectedSlot.Value = index;
+        }
     }
 
     public void UseSelected(GameObject player)
@@ -127,50 +254,6 @@ public class PlayerInventory : MonoBehaviour
         OnInventoryChanged?.Invoke();
         return it;
     }
-    public bool TryPickup(ItemInstance instance)
-    {
-        if (instance == null || instance.itemData == null) return false;
-        if (instance.itemData is BackpackItemData backpackData)
-        {
-            var old = inventorySlots[backpackIndex];
-            if (old != null)
-            {
-                ItemSystem.Instance.HandleDropped(gameObject, old, 0.5f);
-                inventorySlots[backpackIndex] = null;
-                if (selectedSlot == backpackIndex)
-                    DeselectCurrent();
-                OnBackpackChanged?.Invoke();
-                OnInventoryChanged?.Invoke();
-            }
-            inventorySlots[backpackIndex] = instance;
-            OnBackpackChanged?.Invoke();
-            OnInventoryChanged?.Invoke();
-            return true;
-        }
-        for (int i = 1; i <= mainSlotsCount; i++)
-            if (inventorySlots[i] == null)
-            {
-                inventorySlots[i] = instance;
-                OnInventoryChanged?.Invoke();
-                return true;
-            }
-        var oldHand = inventorySlots[0];
-        if (oldHand != null && oldHand.itemData != null)
-        {
-            ItemSystem.Instance.HandleDropped(gameObject, oldHand, 0.5f);
-            ClearHandVisual();
-            inventorySlots[0] = null;
-            OnHandChanged?.Invoke();
-            OnInventoryChanged?.Invoke();
-        }
-
-        inventorySlots[0] = instance;
-        ItemSystem.Instance.HandleSelected(gameObject, inventorySlots[0], handMount);
-        SetSelectedSlot(0);
-        OnInventoryChanged?.Invoke();
-        OnHandChanged?.Invoke();
-        return true;
-    }
 
     // ---------- Backpack helpers ----------
     public bool SwapBackpackSlots(int a, int b)
@@ -229,10 +312,9 @@ public class PlayerInventory : MonoBehaviour
 
     void DeselectCurrent()
     {
-        if (selectedSlot < 0 || selectedSlot >= inventorySlots.Count) { selectedSlot = -1; return; }
-        var cur = inventorySlots[selectedSlot];
-        if (cur != null) ItemSystem.Instance.HandleDeselected(gameObject, cur);
-        selectedSlot = -1;
+        if (!IsOwner) return;
+
+        RequestSetSelectedSlotServerRpc(-1);
     }
 
     ItemInstance GetSelectedInstance()

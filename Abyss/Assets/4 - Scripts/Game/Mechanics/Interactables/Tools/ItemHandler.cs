@@ -1,4 +1,5 @@
 using Game.Mechanics.Interactables.Tools;
+using Unity.Netcode;
 using UnityEngine;
 public class ItemHandler : IItemHandler
 {
@@ -16,21 +17,33 @@ public class ItemHandler : IItemHandler
         }
     }
 
-    public virtual void OnSelected(GameObject player, ItemInstance instance,Transform handTransform)
+    public virtual void OnSelected(GameObject player, ItemInstance instance, Transform handTransform)
     {
         var data = instance.itemData;
-        if (data == null || data.itemPrefab == null) return;
-        if (handTransform == null) return;
+        if (data == null || data.itemPrefab == null || handTransform == null) return;
 
+        // Удаляем старый визуал, если он был
         if (instance.runtimeHeldObject != null)
         {
             Object.Destroy(instance.runtimeHeldObject);
-            instance.runtimeHeldObject = null;
         }
 
+        // Создаем ЛОКАЛЬНУЮ копию префаба. 
+        // Поскольку этот код выполнится на всех клиентах через OnNetworkListChanged,
+        // все увидят предмет в руках этого игрока.
         var go = Object.Instantiate(data.itemPrefab, handTransform);
         go.transform.localPosition = Vector3.zero;
         go.transform.localRotation = Quaternion.identity;
+
+        // Выключаем NetworkObject на визуальной копии, чтобы он не конфликтовал 
+        // (визуал в руке — это просто "пустышка", а не реальный сетевой объект)
+        if (go.TryGetComponent<NetworkObject>(out var netObj))
+        {
+            netObj.enabled = false;
+        }
+
+        // И отключаем физику, чтобы предмет не улетел из рук
+        if (go.TryGetComponent<Rigidbody>(out var rb)) rb.isKinematic = true;
 
         instance.runtimeHeldObject = go;
     }

@@ -9,7 +9,7 @@ namespace Game.Mechanics.Interactables.Tools
     public class ItemData : ScriptableObject
     {
         [Header("Base Info")]
-        public string id;
+        public short id;
         public string itemName = "Item";
         public Sprite icon;
         public int weight = 1;

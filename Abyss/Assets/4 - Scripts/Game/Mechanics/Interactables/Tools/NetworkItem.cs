@@ -2,7 +2,7 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
-public class NetworkItem : INetworkSerializable, IEquatable<NetworkItem>
+public struct NetworkItem : INetworkSerializable, IEquatable<NetworkItem>
 {
     public short ItemID;      // -1 если пусто
     public int RemainingUses;

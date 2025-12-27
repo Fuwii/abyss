@@ -413,7 +413,7 @@ GameObject:
   - component: {fileID: 1743474082908498290}
   - component: {fileID: 5152442653135459793}
   - component: {fileID: 5829967259299446738}
-  - component: {fileID: 6097502544967160640}
+  - component: {fileID: -3919289371759857936}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -579,6 +579,7 @@ MonoBehaviour:
   - {fileID: 578932941548239113}
   - {fileID: 5152442653135459793}
   - {fileID: 5829967259299446738}
+  - {fileID: -3919289371759857936}
 --- !u!114 &8478057515795289047
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -787,6 +788,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb8ad6a40182fee4882e322c48dab4ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
   handMount: {fileID: 999095877863285171}
   mainSlotsCount: 4
   inventorySlots: []
@@ -818,7 +820,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02855a6f63da04a47a200a9981a1284e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &6097502544967160640
+--- !u!114 &-3919289371759857936
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -827,9 +829,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 2457687564484327083}
   m_Enabled: 0
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0e806a3bfd13f444a98fdf59574e894, type: 3}
+  m_Script: {fileID: 11500000, guid: 32f403cd4da288644b8b6704dceb5533, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  items:
+  - {fileID: 11400000, guid: 341667250c6e2574083e489e98b02fac, type: 2}
+  - {fileID: 11400000, guid: e4f4b88bb3a366842a348d374dac00cc, type: 2}
 --- !u!1 &2921874748193461785
 GameObject:
   m_ObjectHideFlags: 0

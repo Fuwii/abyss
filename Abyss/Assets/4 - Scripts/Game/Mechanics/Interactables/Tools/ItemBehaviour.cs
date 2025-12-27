@@ -27,30 +27,36 @@ namespace Game.Mechanics.Interactables.Tools
         public void OnFocusEnter(GameObject player) { }
         public void OnFocusExit(GameObject player) { }
 
+        //public void Interact(GameObject localPlayerObject)
+        //{
+        //    if (!IsOwner && !IsServer)
+        //    {
+        //        Debug.LogWarning("Interact called by non-owner?");
+        //    }
+
+        //    var inv = localPlayerObject.GetComponent<PlayerInventory>();
+        //    if (inv == null)
+        //    {
+        //        Debug.LogWarning("Local player has no PlayerInventory");
+        //        return;
+        //    }
+
+        //    bool ok = inv.TryPickup(itemInstance);
+        //    if (!ok)
+        //    {
+        //        Debug.Log("Inventory full locally");
+        //        return;
+        //    }
+
+        //    RequestDespawnServerRpc();
+        //}
         public void Interact(GameObject localPlayerObject)
         {
-            if (!IsOwner && !IsServer)
-            {
-                Debug.LogWarning("Interact called by non-owner?");
-            }
-
             var inv = localPlayerObject.GetComponent<PlayerInventory>();
-            if (inv == null)
-            {
-                Debug.LogWarning("Local player has no PlayerInventory");
-                return;
-            }
+            if (inv == null) return;
 
-            bool ok = inv.TryPickup(itemInstance);
-            if (!ok)
-            {
-                Debug.Log("Inventory full locally");
-                return;
-            }
-
-            RequestDespawnServerRpc();
+            inv.RequestPickupServerRpc(new NetworkObjectReference(NetworkObject));
         }
-
 
         [ServerRpc(RequireOwnership = false)]
         private void RequestDespawnServerRpc()
