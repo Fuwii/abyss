@@ -1,11 +1,12 @@
 using UnityEngine;
+using Unity.Netcode;
 
-//item in word
 namespace Game.Mechanics.Interactables.Tools
 {
     [RequireComponent(typeof(Collider))]
     [RequireComponent(typeof(Rigidbody))]
-    public class ItemBehaviour : MonoBehaviour, IInteractable
+    [RequireComponent(typeof(NetworkObject))]
+    public class ItemBehaviour : NetworkBehaviour, IInteractable
     {
         public ItemData data;
         public ItemInstance itemInstance;
@@ -13,39 +14,52 @@ namespace Game.Mechanics.Interactables.Tools
         private void Reset()
         {
             itemInstance = new ItemInstance(data);
-            GetComponent<Collider>().isTrigger = true;
+            var coll = GetComponent<Collider>();
+            if (coll) coll.isTrigger = true;
         }
+
         private void Awake()
         {
             itemInstance = new ItemInstance(data);
         }
-        //ui hints(price,name etc)
-        public void OnFocusEnter(GameObject player) {}
-        public void OnFocusExit(GameObject player) {}
 
-        public void Interact(GameObject player)
+        // UI hints
+        public void OnFocusEnter(GameObject player) { }
+        public void OnFocusExit(GameObject player) { }
+
+        public void Interact(GameObject localPlayerObject)
         {
-            if (data == null) return;
+            if (!IsOwner && !IsServer)
+            {
+                Debug.LogWarning("Interact called by non-owner?");
+            }
 
-
-            var inv = player.GetComponent<PlayerInventory>();
+            var inv = localPlayerObject.GetComponent<PlayerInventory>();
             if (inv == null)
             {
-                Debug.LogWarning("Player has no PlayerInventory component");
+                Debug.LogWarning("Local player has no PlayerInventory");
                 return;
             }
+
             bool ok = inv.TryPickup(itemInstance);
-            if (ok)
+            if (!ok)
             {
-                Debug.Log("Picked");
-                Debug.Log(ItemSystem.Instance);
-                ItemSystem.Instance.HandlePickup(player, itemInstance);
-                Destroy(gameObject);
+                Debug.Log("Inventory full locally");
+                return;
             }
-            else
+
+            RequestDespawnServerRpc();
+        }
+
+
+        [ServerRpc(RequireOwnership = false)]
+        private void RequestDespawnServerRpc()
+        {
+            if (NetworkObject != null && NetworkObject.IsSpawned)
             {
-                Debug.Log("Inventory full");
+                NetworkObject.Despawn(true);
             }
         }
+
     }
 }

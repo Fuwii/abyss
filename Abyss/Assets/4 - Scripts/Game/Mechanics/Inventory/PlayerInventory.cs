@@ -38,6 +38,12 @@ public class PlayerInventory : MonoBehaviour
     public void SetSelectedSlot(int index)
     {
         if (index < 0 || index >= inventorySlots.Count) return;
+        if (selectedSlot == index)
+        {
+            DeselectCurrent();
+            return;
+        }
+
         if (index != 0)
         {
             var hand = inventorySlots[0];

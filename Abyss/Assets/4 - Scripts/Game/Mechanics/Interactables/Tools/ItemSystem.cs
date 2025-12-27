@@ -10,8 +10,8 @@ public class ItemSystem : Singleton<ItemSystem>
 
     protected override void Awake()
     {
-        base.Awake(); 
-
+        base.Awake();
+        Debug.LogWarning(gameObject.name);
         RegisterHandler(typeof(ItemData), new ItemHandler());
         RegisterHandler(typeof(WeaponData), new WeaponHandler());
         RegisterHandler(typeof(ConsumableData), new ConsumableHandler());
