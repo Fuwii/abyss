@@ -17,12 +17,11 @@ public class ItemHandler : IItemHandler
         }
     }
 
-    public virtual void OnSelected(GameObject player, ItemInstance instance, Transform handTransform)
+    public virtual void OnSelected(GameObject player, ItemInstance instance, Transform handTransform, bool isOwner)
     {
         var data = instance.itemData;
         if (data == null || data.itemPrefab == null || handTransform == null) return;
 
-        // Удаляем старый визуал, если он был
         if (instance.runtimeHeldObject != null)
         {
             Object.Destroy(instance.runtimeHeldObject);
@@ -36,7 +35,6 @@ public class ItemHandler : IItemHandler
         go.transform.localRotation = Quaternion.identity;
 
         // Выключаем NetworkObject на визуальной копии, чтобы он не конфликтовал 
-        // (визуал в руке — это просто "пустышка", а не реальный сетевой объект)
         if (go.TryGetComponent<NetworkObject>(out var netObj))
         {
             netObj.enabled = false;
@@ -55,32 +53,29 @@ public class ItemHandler : IItemHandler
 
     public virtual void OnDropped(GameObject player, ItemInstance instance, float force)
     {
-        var data = instance?.itemData;
-        if (data == null || data.itemPrefab == null) return;
+        if (instance == null) return;
 
-        var dropPos = player.transform.position + player.transform.forward * 1.5f;
-        var dropRot = Quaternion.identity;
+        OnDeselected(player, instance);
 
-        var dropped = Object.Instantiate(data.itemPrefab, dropPos, dropRot);
+        if (instance.worldObject == null) return;
+        instance.worldObject.gameObject.SetActive(true);
+        if (!NetworkManager.Singleton.IsServer) return;
 
-        var rb = dropped.GetComponent<Rigidbody>();
-        if(rb == null)
-            rb = dropped.AddComponent<Rigidbody>();
-        rb.useGravity = true;
-        Debug.Log(force);
-        rb.AddForce(player.transform.forward * (force*10), ForceMode.VelocityChange);
+        var obj = instance.worldObject;
+        obj.gameObject.SetActive(true);
 
-        var behaviour = dropped.GetComponent<ItemBehaviour>();
-        if (behaviour != null)
+        // Позиционирование
+        obj.transform.position = player.transform.position + player.transform.forward * 1.2f + Vector3.up * 0.5f;
+        obj.transform.rotation = Quaternion.identity;
+
+        // Физика
+        if (obj.TryGetComponent<Rigidbody>(out var rb))
         {
-            behaviour.data = instance.itemData;
-            behaviour.itemInstance = instance;
-        }
-        if (instance.runtimeHeldObject != null)
-        {
-            Object.Destroy(instance.runtimeHeldObject);
-            instance.runtimeHeldObject = null;
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            rb.AddForce(player.transform.forward * (force * 10f), ForceMode.VelocityChange);
         }
     }
+
 }
 

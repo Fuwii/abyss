@@ -19,7 +19,7 @@ MonoBehaviour:
   price: 1
   rarity: 0
   uses: 0
-  itemPrefab: {fileID: 0}
+  itemPrefab: {fileID: 919132149155446097, guid: a0ae3d2cd6dd0244bbd18498cd5deb83, type: 3}
   category: 0
   capacity: 9
   backpackUIPrefab: {fileID: 2114514600177203232, guid: 17e19c502ee1cd24c82df3f7aed33192, type: 3}

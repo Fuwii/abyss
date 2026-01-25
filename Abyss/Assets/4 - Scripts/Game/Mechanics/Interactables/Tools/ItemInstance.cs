@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Game.Mechanics.Interactables.Tools
@@ -12,6 +13,8 @@ namespace Game.Mechanics.Interactables.Tools
 
         public GameObject runtimeHeldObject;
 
+        public NetworkObject worldObject;
+
         public List<IItemComponent> components = new();
 
         public ItemInstance() { }
@@ -22,8 +25,9 @@ namespace Game.Mechanics.Interactables.Tools
             remainingUses = data != null ? data.uses : 0;
             if (data is BackpackItemData bpData)
             {
-                AddComponent(new BackpackComponent(bpData.capacity, bpData.backpackUIPrefab));
+                AddComponent(new BackpackComponent(bpData.capacity,bpData.backpackUIPrefab));
             }
+
         }
 
         public T GetComponent<T>() where T : class, IItemComponent
@@ -42,5 +46,7 @@ namespace Game.Mechanics.Interactables.Tools
         }
 
         public bool IsBroken => itemData != null && itemData.uses > 0 && remainingUses <= 0;
+
+        public GameObject runtimeBackpackVisual { get; set; }
     }
 }

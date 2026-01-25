@@ -1,7 +1,8 @@
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
 using Game.Mechanics.Interactables.Tools;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using static PlayerInventory;
 
 [RequireComponent(typeof(RectTransform))]
 [RequireComponent(typeof(CanvasGroup))]
@@ -21,7 +22,7 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     private CanvasGroup canvasGroup;
 
     private GameObject dragIcon;
-    private ItemSlotUI dragSourceSlot;
+    private static ItemSlotUI dragSourceSlot;
 
     private bool subscribedToInventory = false;
 
@@ -112,7 +113,7 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (inventory == null) return;
+        if (inventory == null || !inventory.IsOwner) return;
         ItemInstance inst = isBackpack ? inventory.GetBackpackContentsAt(slotIndex) : inventory.GetSlot(slotIndex);
         if (inst == null || inst.itemData == null) return;
 
@@ -170,67 +171,22 @@ public class ItemSlotUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     public void OnDrop(PointerEventData eventData)
     {
-        // При любом OnDrop тоже делаем чистку (страховка)
-        CleanupDragIcon();
-
+        // Важно: берем данные из статической переменной
         ItemSlotUI from = dragSourceSlot;
-        if (from == null && eventData.pointerDrag != null)
-            from = eventData.pointerDrag.GetComponent<ItemSlotUI>();
 
+        // Если "откуда" пусто или это тот же слот — выходим
         if (from == null || from == this) return;
-        if (inventory == null) return;
 
-        // backpack <-> backpack (swap contents)
-        if (isBackpack && from.isBackpack)
-        {
-            if (inventory.GetBackpackComponent() == null) return;
-            inventory.SwapBackpackSlots(from.slotIndex, slotIndex);
-            return;
-        }
+        // ПРОВЕРКА: Можем ли мы взаимодействовать с этим инвентарем
+        if (inventory == null || !inventory.IsOwner) return;
 
-        // main <- backpack  (move backpack content -> main global slot)
-        if (!isBackpack && from.isBackpack)
-        {
-            MoveFromBackpackToMain(from.slotIndex, slotIndex);
-            return;
-        }
+        InventorySource fromSource = from.isBackpack ? InventorySource.Backpack : InventorySource.PlayerInventory;
+        InventorySource toSource = isBackpack ? InventorySource.Backpack : InventorySource.PlayerInventory;
 
-        // backpack <- main (move main global slot -> backpack content)
-        if (isBackpack && !from.isBackpack)
-        {
-            MoveFromMainToBackpack(from.slotIndex, slotIndex);
-            return;
-        }
+        // Вызываем RPC
+        inventory.MoveItemServerRpc(fromSource, from.slotIndex, toSource, slotIndex);
 
-        // main <-> main swap (global inventory slots)
-        if (!isBackpack && !from.isBackpack)
-        {
-            inventory.SwapSlots(from.slotIndex, slotIndex);
-            return;
-        }
-    }
-
-    // helpers
-    private void MoveFromMainToBackpack(int mainIndex, int backpackContentIndex)
-    {
-        if (!inventory.backpackWorn) return;
-        var item = inventory.GetSlot(mainIndex);
-        if (item == null) return;
-        if (inventory.GetBackpackContentsAt(backpackContentIndex) != null) return;
-
-        var taken = inventory.RemoveFromSlot(mainIndex);
-        if (taken != null) inventory.TryPutIntoBackpack(backpackContentIndex, taken);
-    }
-
-    private void MoveFromBackpackToMain(int backpackContentIndex, int mainIndex)
-    {
-        if (!inventory.backpackWorn) return;
-        var item = inventory.GetBackpackContentsAt(backpackContentIndex);
-        if (item == null) return;
-        if (inventory.GetSlot(mainIndex) != null) return;
-
-        var taken = inventory.DropFromBackpack(backpackContentIndex);
-        if (taken != null) inventory.TryPutIntoSlot(mainIndex, taken);
+        CleanupDragIcon();
     }
 
     // Очистка drag-объекта и восстановление состояния слота

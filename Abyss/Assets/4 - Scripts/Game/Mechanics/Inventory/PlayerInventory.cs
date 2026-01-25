@@ -20,6 +20,8 @@ public class PlayerInventory : NetworkBehaviour
 
     int backpackIndex => mainSlotsCount + 1;
     public bool backpackWorn => inventorySlots != null && inventorySlots.Count > backpackIndex && inventorySlots[backpackIndex] != null;
+    public NetworkVariable<NetworkObjectReference> wornBackpack;
+    public Transform backpackMount;
 
     void Awake()
     {
@@ -61,81 +63,91 @@ public class PlayerInventory : NetworkBehaviour
     }
     private void UpdateHandVisual()
     {
-        // Сначала всегда тотальная зачистка
         ClearHandVisual();
 
         int currentIndex = netSelectedSlot.Value;
 
-        // Если индекс валидный и там есть предмет — рисуем
         if (currentIndex >= 0 && currentIndex < inventorySlots.Count)
         {
             var it = inventorySlots[currentIndex];
             if (it != null && it.itemData != null)
             {
-                ItemSystem.Instance.HandleSelected(gameObject, it, handMount);
+                Debug.Log("Handle selected");
+                ItemSystem.Instance.HandleSelected(gameObject, it, handMount, IsOwner);
             }
         }
     }
     [ServerRpc(RequireOwnership = false)]
     public void RequestPickupServerRpc(NetworkObjectReference itemRef, ServerRpcParams rpcParams = default)
     {
-        // 1. Пытаемся достать объект из ссылки
         if (!itemRef.TryGet(out NetworkObject itemNetObj)) return;
 
-        // 2. Достаем компонент предмета
         var itemBehaviour = itemNetObj.GetComponent<ItemBehaviour>();
         if (itemBehaviour == null) return;
 
+        var instance = itemBehaviour.itemInstance;
+        if (instance == null) return;
+
+        // Сразу привязываем объект на сервере (чтобы Handler его видел)
+        instance.worldObject = itemNetObj;
+
         short id = itemBehaviour.data.id;
-        int uses = itemBehaviour.itemInstance.remainingUses;
+        int uses = instance.remainingUses;
 
-        // 3. ТВОЯ ПЕРЕДЕЛАННАЯ ЛОГИКА TryPickup
-        // Важно: на сервере мы меняем NetworkList (netSlots), 
-        // а клиенты обновят свои inventorySlots автоматически через OnListChanged
+        // СОЗДАЕМ ТОВАР С ССЫЛКОЙ (чтобы клиент потом оживил worldObject)
+        var pickedItem = new NetworkItem
+        {
+            ItemID = id,
+            RemainingUses = uses,
+            WorldObjRef = itemNetObj
+        };
 
+        // 1. ПРИОРИТЕТ: Рюкзак
         if (itemBehaviour.data is BackpackItemData)
         {
-            if (netSlots[backpackIndex].ItemID != -1)
-            {
-                // Логика "выбросить старый рюкзак", если нужно...
-            }
-            netSlots[backpackIndex] = new NetworkItem { ItemID = id, RemainingUses = uses };
-            itemNetObj.Despawn(true); // Успех!
+            netSlots[backpackIndex] = pickedItem;
+            ItemSystem.Instance.HandlePickup(gameObject, instance);
+            FinalizePickup(itemNetObj);
             return;
         }
 
-        // Ищем пустое место в основных слотах
+        // 2. ПРИОРИТЕТ: Обычные слоты (от 1 до mainSlotsCount)
         for (int i = 1; i <= mainSlotsCount; i++)
         {
-            if (netSlots[i].ItemID == -1) // -1 значит пусто
+            if (netSlots[i].ItemID == -1)
             {
-                netSlots[i] = new NetworkItem { ItemID = id, RemainingUses = uses };
-                itemNetObj.Despawn(true); // Успех!
+                netSlots[i] = pickedItem;
+                FinalizePickup(itemNetObj);
                 return;
             }
         }
 
-        // Если места нет в слотах, пробуем взять в руки (0 слот)
+        // 3. ПРИОРИТЕТ: Слот руки (0) — только если остальное занято
         if (netSlots[0].ItemID == -1)
         {
-            netSlots[0] = new NetworkItem { ItemID = id, RemainingUses = uses };
-            itemNetObj.Despawn(true);
+            netSlots[0] = pickedItem;
+            FinalizePickup(itemNetObj);
             return;
         }
 
-        // Если дошли сюда — инвентарь реально полон, ничего не делаем.
         Debug.Log("Server: No space for item");
     }
+
+    // Вспомогательный метод, чтобы не дублировать код выключения объекта
+    private void FinalizePickup(NetworkObject itemNetObj)
+    {
+        itemNetObj.gameObject.SetActive(false);
+        itemNetObj.TrySetParent(transform); // Цепляем к игроку, чтобы объект перемещался с ним
+    }
+
     private void OnNetworkListChanged(NetworkListEvent<NetworkItem> changeEvent)
     {
-        SyncLocalInventory(); // Обновили данные
+        SyncLocalInventory(); 
 
-        // ВИЗУАЛ: Обновляем руку только если изменился Тот Самый слот, который сейчас выбран
         if (changeEvent.Index == netSelectedSlot.Value)
         {
             UpdateHandVisual();
         }
-        // 3. UI ОБНОВЛЯЕМ ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА
         if (IsOwner)
     {
         OnInventoryChanged?.Invoke();
@@ -147,14 +159,41 @@ public class PlayerInventory : NetworkBehaviour
     {
         for (int i = 0; i < netSlots.Count; i++)
         {
-            if (netSlots[i].ItemID == -1)
+            var netItem = netSlots[i];
+
+            if (netItem.ItemID == -1)
             {
-                inventorySlots[i] = null;
+                if (inventorySlots[i] != null)
+                {
+                    ItemSystem.Instance.HandleDropped(gameObject, inventorySlots[i], 0);
+                    inventorySlots[i] = null;
+                }
+                continue;
             }
-            else
+
+            // Если предмета не было или он изменился (МОМЕНТ ПОДБОРА)
+            if (inventorySlots[i] == null || inventorySlots[i].itemData.id != netItem.ItemID)
             {
-                var data = ItemDatabase.GetItem(netSlots[i].ItemID);
-                inventorySlots[i] = new ItemInstance(data) { remainingUses = netSlots[i].RemainingUses };
+                var data = ItemDatabase.GetItem(netItem.ItemID);
+                var inst = new ItemInstance(data) { remainingUses = netItem.RemainingUses };
+
+                if (netItem.WorldObjRef.TryGet(out NetworkObject netObj))
+                {
+                    inst.worldObject = netObj;
+
+                    // ВОТ ТУТ: Принудительно гасим объект у клиента при подборе
+                    if (netObj != null)
+                    {
+                        netObj.gameObject.SetActive(false);
+                    }
+                }
+
+                inventorySlots[i] = inst;
+
+                if (i == backpackIndex)
+                {
+                    ItemSystem.Instance.HandlePickup(gameObject, inst);
+                }
             }
         }
     }
@@ -170,14 +209,14 @@ public class PlayerInventory : NetworkBehaviour
 
     public void SetSelectedSlot(int index)
     {
-        if (!IsOwner) return; // Только владелец может нажать на кнопку выбора
+        if (!IsOwner) return; 
 
-        // Вместо прямого изменения вызываем RPC
         RequestSetSelectedSlotServerRpc(index);
     }
     [ServerRpc]
     private void RequestSetSelectedSlotServerRpc(int index)
     {
+        
         if (index == -1)
         {
             netSelectedSlot.Value = -1;
@@ -194,6 +233,7 @@ public class PlayerInventory : NetworkBehaviour
         {
             netSelectedSlot.Value = index;
         }
+        Debug.Log("Index " + index);
     }
 
     public void UseSelected(GameObject player)
@@ -206,109 +246,51 @@ public class PlayerInventory : NetworkBehaviour
 
     public void DropSelected(float force)
     {
-        var sel = GetSelectedInstance();
-        if (sel == null || sel.itemData == null) return;
-        if (selectedSlot == backpackIndex)
-        {
-            ItemSystem.Instance.HandleDropped(gameObject, inventorySlots[backpackIndex], force);
-            inventorySlots[backpackIndex] = null;
-            OnBackpackChanged?.Invoke();
-            OnInventoryChanged?.Invoke();
-        }
-        else
-        {
-            ItemSystem.Instance.HandleDropped(gameObject, inventorySlots[selectedSlot], force);
-            inventorySlots[selectedSlot] = null;
-            OnInventoryChanged?.Invoke();
-        }
+        if (!IsOwner) return;
+
+        int slot = selectedSlot;
+        if (slot < 0) return;
+        RequestDropServerRpc(slot, force);
 
         DeselectCurrent();
     }
 
+    [ServerRpc]
+    private void RequestDropServerRpc(int slotIndex, float force)
+    {
+        if (slotIndex < 0 || slotIndex >= netSlots.Count) return;
+
+        var netItem = netSlots[slotIndex];
+        if (netItem.ItemID == -1) return;
+
+        // На сервере у нас есть доступ к тому же инстансу
+        var inst = inventorySlots[slotIndex];
+        if (inst == null) return;
+
+        if (inst.worldObject != null)
+        {
+            var netObj = inst.worldObject;
+
+            // 1. Сначала отцепляем от игрока (Важно!)
+            netObj.TryRemoveParent();
+
+            // 2. Включаем (это синхронизируется)
+            netObj.gameObject.SetActive(true);
+
+            // 3. Вызываем хендлер, где включается физика
+            ItemSystem.Instance.HandleDropped(gameObject, inst, force);
+        }
+        // ВАЖНО: Очищаем сетевой слот, чтобы он не дублировался при подборе!
+        netSlots[slotIndex] = new NetworkItem { ItemID = -1, RemainingUses = 0, WorldObjRef = default };
+
+        // Если это был рюкзак, сбрасываем переменную wornBackpack
+        if (slotIndex == backpackIndex)
+        {
+            wornBackpack.Value = default;
+        }
+    }
+
     public ItemInstance GetSlot(int i) => (i >= 0 && i < inventorySlots.Count) ? inventorySlots[i] : null;
-
-    public bool SwapSlots(int a, int b)
-    {
-        if (a < 0 || a >= inventorySlots.Count || b < 0 || b >= inventorySlots.Count) return false;
-        if (a == b) return true;
-        var tmp = inventorySlots[a];
-        inventorySlots[a] = inventorySlots[b];
-        inventorySlots[b] = tmp;
-        OnInventoryChanged?.Invoke();
-        return true;
-    }
-    public bool TryPutIntoSlot(int index, ItemInstance item)
-    {
-        if (index < 0 || index >= inventorySlots.Count) return false;
-        if (inventorySlots[index] != null) return false;
-        inventorySlots[index] = item;
-        OnInventoryChanged?.Invoke();
-        return true;
-    }
-
-    public ItemInstance RemoveFromSlot(int index)
-    {
-        if (index < 0 || index >= inventorySlots.Count) return null;
-        var it = inventorySlots[index];
-        inventorySlots[index] = null;
-        OnInventoryChanged?.Invoke();
-        return it;
-    }
-
-    // ---------- Backpack helpers ----------
-    public bool SwapBackpackSlots(int a, int b)
-    {
-        var comp = GetBackpackComponent();
-        if (comp == null) return false;
-        if (a < 0 || a >= comp.contents.Count || b < 0 || b >= comp.contents.Count) return false;
-        if (a == b) return true;
-
-        var tmp = comp.contents[a];
-        comp.contents[a] = comp.contents[b];
-        comp.contents[b] = tmp;
-
-        OnBackpackChanged?.Invoke();
-        return true;
-    }
-
-    public BackpackComponent GetBackpackComponent()
-    {
-        var bp = (backpackIndex >= 0 && backpackIndex < inventorySlots.Count) ? inventorySlots[backpackIndex] : null;
-        return bp != null ? bp.GetComponent<BackpackComponent>() : null;
-    }
-
-    public int GetBackpackSize()
-    {
-        var c = GetBackpackComponent();
-        return c != null ? c.capacity : 0;
-    }
-
-    public ItemInstance GetBackpackContentsAt(int index)
-    {
-        var comp = GetBackpackComponent();
-        if (comp == null || index < 0 || index >= comp.contents.Count) return null;
-        return comp.contents[index];
-    }
-
-    public bool TryPutIntoBackpack(int index, ItemInstance item)
-    {
-        var comp = GetBackpackComponent();
-        if (comp == null || index < 0 || index >= comp.contents.Count) return false;
-        if (comp.contents[index] != null) return false;
-        comp.contents[index] = item;
-        OnBackpackChanged?.Invoke();
-        return true;
-    }
-
-    public ItemInstance DropFromBackpack(int index)
-    {
-        var comp = GetBackpackComponent();
-        if (comp == null || index < 0 || index >= comp.contents.Count) return null;
-        var it = comp.contents[index];
-        comp.contents[index] = null;
-        OnBackpackChanged?.Invoke();
-        return it;
-    }
 
     void DeselectCurrent()
     {
@@ -339,4 +321,87 @@ public class PlayerInventory : NetworkBehaviour
         }
         DeselectCurrent();
     }
+    // ---------- Backpack helpers ----------
+    public NetworkContainer GetBackpack()
+    {
+        if (!wornBackpack.Value.TryGet(out var obj)) return null;
+        return obj.GetComponent<NetworkContainer>();
+    }
+    public int GetBackpackSize()
+    {
+        var bp = GetBackpack();
+        return bp != null ? bp.Capacity : 0;
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void PutIntoBackpackServerRpc(
+    NetworkObjectReference backpackRef,
+    int slot,
+    NetworkItem item)
+    {
+        if (!backpackRef.TryGet(out var obj)) return;
+
+        var bp = obj.GetComponent<NetworkContainer>();
+        if (bp == null) return;
+
+        bp.TryPut(slot, item);
+    }
+    //new
+    public ItemInstance GetBackpackContentsAt(int index)
+    {
+        var bp = GetBackpack();
+        if (bp == null) return null;
+
+        if (index < 0 || index >= bp.Contents.Count) return null;
+
+        var netItem = bp.Contents[index];
+        if (netItem.ItemID == -1) return null;
+
+        var data = ItemDatabase.GetItem(netItem.ItemID);
+        return new ItemInstance(data)
+        {
+            remainingUses = netItem.RemainingUses
+        };
+    }
+    //move slots
+    [ServerRpc(RequireOwnership = false)]
+    public void MoveItemServerRpc(InventorySource from, int fromSlot, InventorySource to, int toSlot)
+    {
+        NetworkItem sourceItem = GetNetworkItem(from, fromSlot);
+        if (sourceItem.ItemID == -1) return;
+        NetworkItem targetItem = GetNetworkItem(to, toSlot);
+        SetNetworkItem(to, toSlot, sourceItem);
+        SetNetworkItem(from, fromSlot, targetItem);
+        if (IsOwner)
+        {
+            OnInventoryChanged?.Invoke();
+            if (from == InventorySource.Backpack || to == InventorySource.Backpack)
+                OnBackpackChanged?.Invoke();
+        }
+    }
+
+    private NetworkItem GetNetworkItem(InventorySource source, int slot)
+    {
+        if (source == InventorySource.PlayerInventory)
+            return netSlots[slot];
+        else
+            return GetBackpack()?.Contents[slot] ?? new NetworkItem { ItemID = -1, RemainingUses = 0 };
+    }
+
+    private void SetNetworkItem(InventorySource source, int slot, NetworkItem item)
+    {
+        if (source == InventorySource.PlayerInventory)
+            netSlots[slot] = item;
+        else
+        {
+            var bp = GetBackpack();
+            if (bp != null)
+                bp.Contents[slot] = item;
+        }
+    }
+    public enum InventorySource
+    {
+        PlayerInventory,
+        Backpack
+    }
 }
+

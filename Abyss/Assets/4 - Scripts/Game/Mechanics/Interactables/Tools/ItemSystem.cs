@@ -43,8 +43,8 @@ public class ItemSystem : Singleton<ItemSystem>
     public void HandlePickup(GameObject player, ItemInstance instance)
         => GetHandler(instance.itemData).OnPickup(player, instance);
 
-    public void HandleSelected(GameObject player, ItemInstance instance, Transform handTransform)
-        => GetHandler(instance.itemData).OnSelected(player, instance, handTransform);
+    public void HandleSelected(GameObject player, ItemInstance instance, Transform handTransform, bool isOwner)
+        => GetHandler(instance.itemData).OnSelected(player, instance, handTransform, isOwner);
 
     public void HandleUse(GameObject player, ItemInstance instance)
         => GetHandler(instance.itemData).OnUse(player, instance);

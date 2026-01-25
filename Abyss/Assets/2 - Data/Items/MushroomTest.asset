@@ -19,7 +19,7 @@ MonoBehaviour:
   price: 1
   rarity: 0
   uses: 1
-  itemPrefab: {fileID: 808434983981790816, guid: e2d7ea7422987f14197d8befa41911ab, type: 3}
+  itemPrefab: {fileID: 5152829988183512797, guid: 97da00da5e10d9046b12cf0bae284387, type: 3}
   category: 1
   restoreStamina: 10
   applyEffectOnUse: {fileID: 0}
