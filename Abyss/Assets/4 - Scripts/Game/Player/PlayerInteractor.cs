@@ -27,8 +27,6 @@ namespace Game.Player
             if (Physics.Raycast(ray, out var hit, interactDistance))
             {
                 var interactable = hit.collider.GetComponentInParent<IInteractable>();
-
-                Debug.Log("OBject" + interactable);
                 if (interactable != null)
                 {
                     if (interactable != _currentTarget)
