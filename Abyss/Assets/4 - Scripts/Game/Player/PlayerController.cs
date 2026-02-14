@@ -8,6 +8,7 @@ namespace Game.Player
         [SerializeField] private NetworkObject networkObject;
         [SerializeField] private MonoBehaviour[] clientComponents;
         [SerializeField] private GameObject[] clientOnlyObjects;
+        [SerializeField] private GameObject[] serverOnlyObjects;
 
         private void Start()
         {
@@ -29,6 +30,10 @@ namespace Game.Player
             foreach (var obj in clientOnlyObjects)
             {
                 if (obj != null) obj.SetActive(true);
+            }
+            foreach (var obj in serverOnlyObjects)
+            {
+                if (obj != null) obj.SetActive(false);
             }
 
         }
